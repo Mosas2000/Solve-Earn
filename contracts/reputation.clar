@@ -65,3 +65,84 @@
         (ok true)
     )
 )
+
+(define-public (update-reputation-on-acceptance 
+    (researcher principal) 
+    (reward uint) 
+    (severity (string-ascii 10))
+)
+    (let
+        (
+            (profile (unwrap! (map-get? researcher-profiles { researcher: researcher }) err-not-found))
+            (score-boost (severity-to-score-boost severity))
+            (new-score (+ (get reputation-score profile) score-boost))
+        )
+        (asserts! (is-eq contract-caller contract-owner) err-unauthorized)
+        (map-set researcher-profiles
+            { researcher: researcher }
+            (merge profile {
+                total-submissions: (+ (get total-submissions profile) u1),
+                accepted-submissions: (+ (get accepted-submissions profile) u1),
+                total-earned: (+ (get total-earned profile) reward),
+                reputation-score: (if (> new-score u100) u100 new-score)
+            })
+        )
+        (ok new-score)
+    )
+)
+
+(define-public (update-reputation-on-rejection (researcher principal))
+    (let
+        (
+            (profile (unwrap! (map-get? researcher-profiles { researcher: researcher }) err-not-found))
+            (new-score (if (>= (get reputation-score profile) u5) 
+                (- (get reputation-score profile) u5)
+                u0
+            ))
+        )
+        (asserts! (is-eq contract-caller contract-owner) err-unauthorized)
+        (map-set researcher-profiles
+            { researcher: researcher }
+            (merge profile {
+                total-submissions: (+ (get total-submissions profile) u1),
+                rejected-submissions: (+ (get rejected-submissions profile) u1),
+                reputation-score: new-score
+            })
+        )
+        (ok new-score)
+    )
+)
+
+(define-private (severity-to-score-boost (severity (string-ascii 10)))
+    (if (is-eq severity "critical")
+        u20
+        (if (is-eq severity "high")
+            u15
+            (if (is-eq severity "medium")
+                u10
+                u5
+            )
+        )
+    )
+)
+
+(define-read-only (get-total-researchers)
+    (ok (var-get total-researchers))
+)
+
+(define-read-only (calculate-success-rate (researcher principal))
+    (match (map-get? researcher-profiles { researcher: researcher })
+        profile
+        (let
+            (
+                (total (get total-submissions profile))
+                (accepted (get accepted-submissions profile))
+            )
+            (if (> total u0)
+                (ok (/ (* accepted u100) total))
+                (ok u0)
+            )
+        )
+        err-not-found
+    )
+)
