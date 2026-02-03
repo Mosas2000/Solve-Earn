@@ -1,6 +1,3 @@
-;; Solve-Earn Reputation System
-;; Tracks researcher credibility and history
-
 (define-constant contract-owner tx-sender)
 (define-constant err-unauthorized (err u100))
 (define-constant err-not-found (err u101))
@@ -18,17 +15,6 @@
         reputation-score: uint,
         joined-at: uint,
         is-verified: bool
-    }
-)
-
-(define-map submission-history
-    { researcher: principal, submission-id: uint }
-    {
-        bounty-id: uint,
-        severity: (string-ascii 10),
-        reward: uint,
-        timestamp: uint,
-        status: (string-ascii 10)
     }
 )
 
@@ -69,7 +55,7 @@
 (define-public (update-reputation-on-acceptance 
     (researcher principal) 
     (reward uint) 
-    (severity (string-ascii 10))
+    (severity (string-ascii 8))
 )
     (let
         (
@@ -113,7 +99,7 @@
     )
 )
 
-(define-private (severity-to-score-boost (severity (string-ascii 10)))
+(define-private (severity-to-score-boost (severity (string-ascii 8)))
     (if (is-eq severity "critical")
         u20
         (if (is-eq severity "high")
