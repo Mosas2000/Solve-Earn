@@ -1,6 +1,3 @@
-;; Solve-Earn Dispute Resolution
-;; Handles conflicts between projects and researchers
-
 (define-constant contract-owner tx-sender)
 (define-constant err-unauthorized (err u300))
 (define-constant err-dispute-not-found (err u301))
@@ -15,11 +12,11 @@
     {
         submission-id: uint,
         initiator: principal,
-        reason: (string-utf8 200),
+        reason: (string-utf8 100),
         created-at: uint,
         votes-for: uint,
         votes-against: uint,
-        status: (string-ascii 10),
+        status: (string-ascii 8),
         resolved-at: (optional uint)
     }
 )
@@ -55,7 +52,7 @@
 
 (define-public (create-dispute 
     (submission-id uint)
-    (reason (string-utf8 200))
+    (reason (string-utf8 100))
 )
     (let
         (
@@ -88,12 +85,10 @@
         )
         (asserts! (is-none existing-vote) err-already-voted)
         (asserts! (get is-active arbiter) err-unauthorized)
-        
         (map-set arbiter-votes
             { dispute-id: dispute-id, arbiter: tx-sender }
             { vote: vote-for, voted-at: block-height }
         )
-        
         (map-set disputes
             { dispute-id: dispute-id }
             (merge dispute {
@@ -101,7 +96,6 @@
                 votes-against: (if vote-for (get votes-against dispute) (+ (get votes-against dispute) u1))
             })
         )
-        
         (ok true)
     )
 )
