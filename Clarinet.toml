@@ -1,0 +1,31 @@
+[project]
+name = "solve-earn"
+description = "Decentralized bug bounty platform"
+authors = []
+telemetry = false
+cache_dir = "./.cache"
+requirements = []
+
+[repl]
+epoch = "3.0"
+
+[contracts.bounty-vault]
+path = "contracts/bounty-vault.clar"
+clarity_version = 1
+
+[contracts.reputation]
+path = "contracts/reputation.clar"
+clarity_version = 1
+
+[contracts.dispute-resolver]
+path = "contracts/dispute-resolver.clar"
+clarity_version = 1
+
+[repl.analysis]
+passes = ["check_checker"]
+
+[repl.analysis.check_checker]
+strict = false
+trusted_sender = false
+trusted_caller = false
+callee_filter = false

@@ -1,0 +1,32 @@
+---
+id: 0
+name: Mainnet deployment
+network: mainnet
+stacks-node: "https://stacks-node-api.mainnet.stacks.co"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: bounty-vault
+            expected-sender: SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T
+            cost: 64620
+            path: contracts/bounty-vault.clar
+            anchor-block-only: true
+            clarity-version: 1
+        - contract-publish:
+            contract-name: dispute-resolver
+            expected-sender: SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T
+            cost: 29690
+            path: contracts/dispute-resolver.clar
+            anchor-block-only: true
+            clarity-version: 1
+        - contract-publish:
+            contract-name: reputation
+            expected-sender: SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T
+            cost: 41070
+            path: contracts/reputation.clar
+            anchor-block-only: true
+            clarity-version: 1
+      epoch: "2.05"
