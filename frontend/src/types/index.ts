@@ -1,8 +1,8 @@
 export interface Bounty {
     id: number;
     project: string;
-    title: string;
-    description: string;
+    title: string; // max 50 chars
+    description: string; // max 200 chars
     totalPool: number;
     remainingPool: number;
     criticalReward: number;
@@ -18,10 +18,10 @@ export interface Submission {
     id: number;
     bountyId: number;
     researcher: string;
-    severity: 'critical' | 'high' | 'medium' | 'low';
+    severity: SeverityLevel; // max 8 chars
     reportHash: string;
     submittedAt: number;
-    status: 'pending' | 'approved' | 'rejected';
+    status: 'pending' | 'approved' | 'rejected'; // max 8 chars
     rewardAmount: number;
 }
 
@@ -40,11 +40,11 @@ export interface Dispute {
     id: number;
     submissionId: number;
     initiator: string;
-    reason: string;
+    reason: string; // max 100 chars
     createdAt: number;
     votesFor: number;
     votesAgainst: number;
-    status: 'open' | 'resolved';
+    status: 'open' | 'resolved'; // max 8 chars
     resolvedAt?: number;
 }
 

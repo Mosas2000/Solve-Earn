@@ -60,7 +60,7 @@ export function CreateBounty() {
             <h2>Create Bounty Program</h2>
             <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label htmlFor="title">Title</label>
+                    <label htmlFor="title">Title (max 50 characters)</label>
                     <input
                         type="text"
                         id="title"
@@ -68,12 +68,13 @@ export function CreateBounty() {
                         value={formData.title}
                         onChange={handleChange}
                         placeholder="e.g., Critical API Security Audit"
+                        maxLength={50}
                         required
                     />
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="description">Description</label>
+                    <label htmlFor="description">Description (max 200 characters)</label>
                     <textarea
                         id="description"
                         name="description"
@@ -81,6 +82,7 @@ export function CreateBounty() {
                         onChange={handleChange}
                         placeholder="Describe the scope and requirements..."
                         rows={4}
+                        maxLength={200}
                         required
                     />
                 </div>
