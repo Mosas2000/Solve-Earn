@@ -153,3 +153,83 @@
     )
 )
 
+(define-public (approve-submission (submission-id uint))
+    (let
+        (
+            (submission (unwrap! (map-get? submissions { submission-id: submission-id }) err-bounty-not-found))
+            (bounty-id (get bounty-id submission))
+            (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
+            (reward (get reward-amount submission))
+        )
+        (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        (asserts! (>= (get remaining-pool bounty) reward) err-insufficient-funds)
+        
+        (try! (as-contract (stx-transfer? reward tx-sender (get researcher submission))))
+        
+        (map-set submissions
+            { submission-id: submission-id }
+            (merge submission { status: "approved" })
+        )
+        
+        (map-set bounties
+            { bounty-id: bounty-id }
+            (merge bounty { remaining-pool: (- (get remaining-pool bounty) reward) })
+        )
+        
+        (ok true)
+    )
+)
+
+(define-public (reject-submission (submission-id uint))
+    (let
+        (
+            (submission (unwrap! (map-get? submissions { submission-id: submission-id }) err-bounty-not-found))
+            (bounty-id (get bounty-id submission))
+            (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
+        )
+        (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        
+        (map-set submissions
+            { submission-id: submission-id }
+            (merge submission { status: "rejected" })
+        )
+        
+        (ok true)
+    )
+)
+
+(define-public (close-bounty (bounty-id uint))
+    (let
+        (
+            (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
+            (remaining (get remaining-pool bounty))
+        )
+        (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        
+        (if (> remaining u0)
+            (try! (as-contract (stx-transfer? remaining tx-sender (get project bounty))))
+            true
+        )
+        
+        (map-set bounties
+            { bounty-id: bounty-id }
+            (merge bounty { is-active: false })
+        )
+        
+        (ok remaining)
+    )
+)
+
+(define-read-only (get-bounty (bounty-id uint))
+    (map-get? bounties { bounty-id: bounty-id })
+)
+
+(define-read-only (get-submission (submission-id uint))
+    (map-get? submissions { submission-id: submission-id })
+)
+
+(define-read-only (get-total-bounties)
+    (ok (var-get bounty-nonce))
+)
+
+
