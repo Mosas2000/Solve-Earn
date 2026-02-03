@@ -1,13 +1,9 @@
-;; Solve-Earn Bounty Vault
-;; Core contract for bounty management and payouts
-
 (define-constant contract-owner tx-sender)
 (define-constant err-unauthorized (err u200))
 (define-constant err-bounty-not-found (err u201))
 (define-constant err-insufficient-funds (err u202))
 (define-constant err-bounty-expired (err u203))
 (define-constant err-invalid-severity (err u204))
-(define-constant err-submission-exists (err u205))
 
 (define-data-var bounty-nonce uint u0)
 (define-data-var submission-nonce uint u0)
@@ -16,8 +12,8 @@
     { bounty-id: uint }
     {
         project: principal,
-        title: (string-utf8 100),
-        description: (string-utf8 500),
+        title: (string-utf8 50),
+        description: (string-utf8 200),
         total-pool: uint,
         remaining-pool: uint,
         critical-reward: uint,
@@ -35,27 +31,17 @@
     {
         bounty-id: uint,
         researcher: principal,
-        severity: (string-ascii 10),
+        severity: (string-ascii 8),
         report-hash: (buff 32),
         submitted-at: uint,
-        status: (string-ascii 10),
+        status: (string-ascii 8),
         reward-amount: uint
     }
 )
 
-(define-map project-bounties
-    { project: principal }
-    { bounty-ids: (list 50 uint) }
-)
-
-(define-map researcher-submissions
-    { researcher: principal }
-    { submission-ids: (list 100 uint) }
-)
-
 (define-public (create-bounty
-    (title (string-utf8 100))
-    (description (string-utf8 500))
+    (title (string-utf8 50))
+    (description (string-utf8 200))
     (total-pool uint)
     (critical-reward uint)
     (high-reward uint)
@@ -70,7 +56,6 @@
         )
         (asserts! (>= total-pool (+ critical-reward high-reward medium-reward low-reward)) err-insufficient-funds)
         (try! (stx-transfer? total-pool tx-sender (as-contract tx-sender)))
-        
         (map-set bounties
             { bounty-id: bounty-id }
             {
@@ -88,7 +73,6 @@
                 is-active: true
             }
         )
-        
         (var-set bounty-nonce bounty-id)
         (ok bounty-id)
     )
@@ -96,7 +80,7 @@
 
 (define-public (submit-vulnerability
     (bounty-id uint)
-    (severity (string-ascii 10))
+    (severity (string-ascii 8))
     (report-hash (buff 32))
 )
     (let
@@ -108,7 +92,6 @@
         (asserts! (get is-active bounty) err-bounty-expired)
         (asserts! (< block-height (get expires-at bounty)) err-bounty-expired)
         (asserts! (> reward u0) err-invalid-severity)
-        
         (map-set submissions
             { submission-id: submission-id }
             {
@@ -121,7 +104,6 @@
                 reward-amount: reward
             }
         )
-        
         (var-set submission-nonce submission-id)
         (ok submission-id)
     )
@@ -129,8 +111,8 @@
 
 (define-private (get-reward-by-severity (bounty (tuple 
     (project principal)
-    (title (string-utf8 100))
-    (description (string-utf8 500))
+    (title (string-utf8 50))
+    (description (string-utf8 200))
     (total-pool uint)
     (remaining-pool uint)
     (critical-reward uint)
@@ -140,7 +122,7 @@
     (expires-at uint)
     (created-at uint)
     (is-active bool)
-)) (severity (string-ascii 10)))
+)) (severity (string-ascii 8)))
     (if (is-eq severity "critical")
         (get critical-reward bounty)
         (if (is-eq severity "high")
@@ -163,19 +145,15 @@
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
         (asserts! (>= (get remaining-pool bounty) reward) err-insufficient-funds)
-        
         (try! (as-contract (stx-transfer? reward tx-sender (get researcher submission))))
-        
         (map-set submissions
             { submission-id: submission-id }
             (merge submission { status: "approved" })
         )
-        
         (map-set bounties
             { bounty-id: bounty-id }
             (merge bounty { remaining-pool: (- (get remaining-pool bounty) reward) })
         )
-        
         (ok true)
     )
 )
@@ -188,12 +166,10 @@
             (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
-        
         (map-set submissions
             { submission-id: submission-id }
             (merge submission { status: "rejected" })
         )
-        
         (ok true)
     )
 )
@@ -205,17 +181,14 @@
             (remaining (get remaining-pool bounty))
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
-        
         (if (> remaining u0)
             (try! (as-contract (stx-transfer? remaining tx-sender (get project bounty))))
             true
         )
-        
         (map-set bounties
             { bounty-id: bounty-id }
             (merge bounty { is-active: false })
         )
-        
         (ok remaining)
     )
 )
@@ -231,5 +204,3 @@
 (define-read-only (get-total-bounties)
     (ok (var-get bounty-nonce))
 )
-
-
