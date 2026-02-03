@@ -11,21 +11,21 @@ plan:
         - contract-publish:
             contract-name: bounty-vault
             expected-sender: ST31PKQVQZVZCK3FM3NH67CGD6G1FMR17VPPJ66ZM
-            cost: 46824380
+            cost: 1000000
             path: contracts/bounty-vault.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
             contract-name: dispute-resolver
             expected-sender: ST31PKQVQZVZCK3FM3NH67CGD6G1FMR17VPPJ66ZM
-            cost: 46689755
+            cost: 500000
             path: contracts/dispute-resolver.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
             contract-name: reputation
             expected-sender: ST31PKQVQZVZCK3FM3NH67CGD6G1FMR17VPPJ66ZM
-            cost: 46731825
+            cost: 700000
             path: contracts/reputation.clar
             anchor-block-only: true
             clarity-version: 2
