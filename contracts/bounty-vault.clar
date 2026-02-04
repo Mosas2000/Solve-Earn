@@ -1,3 +1,4 @@
+;; clarity-version: 2
 (define-constant contract-owner tx-sender)
 (define-constant err-unauthorized (err u200))
 (define-constant err-bounty-not-found (err u201))

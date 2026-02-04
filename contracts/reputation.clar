@@ -1,3 +1,4 @@
+;; clarity-version: 2
 (define-constant contract-owner tx-sender)
 (define-constant err-unauthorized (err u100))
 (define-constant err-not-found (err u101))
