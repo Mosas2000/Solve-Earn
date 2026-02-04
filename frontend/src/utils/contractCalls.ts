@@ -4,7 +4,6 @@ import {
     PostConditionMode,
     uintCV,
     stringUtf8CV,
-    stringAsciiCV,
     bufferCV,
     callReadOnlyFunction,
     cvToJSON,
@@ -43,7 +42,10 @@ export async function createBounty(
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
-                                                                saction                                   onCancel: () => {
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
+        },
+        onCancel: () => {
             console.log('Transaction canceled');
         },
     };
@@ -62,8 +64,14 @@ export async function submitVulnerability(
         contractAddress: CONTRACT_ADDRESS,
         contractName: BOUNTY_CONTRACT,
         functionName: 'submit-vulnerability',
-                                                   ),                                                                                                            anchorMode: AnchorMode.Any,
-        postConditio        posConditionMode.Allow,
+        functionArgs: [
+            uintCV(bountyId),
+            stringUtf8CV(severity),
+            bufferCV(reportHash),
+        ],
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
@@ -72,11 +80,19 @@ export async function submitVulnerability(
         },
     };
 
-    await openContractCall(txOp    await openContractCall(txOp    await openContractCall(txOp    await openContractCall(txOp    await openContractCall(txing
+    await openContractCall(txOptions);
+    return 'pending';
+}
+
+export async function approveSubmission(
+    submissionId: number,
+    senderAddress: string
 ) {
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTR        contractNamenName        contractName: BOUNTY_CONTR       rgs: [uintCV(submissionId)],
+        contractName: BOUNTY_CONTRACT,
+        functionName: 'approve-submission',
+        functionArgs: [uintCV(submissionId)],
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
@@ -93,11 +109,27 @@ export async function submitVulnerability(
 }
 
 export async function rejectSubmission(
-    submissionId: numb    submissionId: numb    submissionId: numb    suons = {
-        contractAddress: CONT        contractAddress: CONT        contractAddreT,         fu        contractAddress:ission',
+    submissionId: number,
+    senderAddress: string
+) {
+    const txOptions = {
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: BOUNTY_CONTRACT,
+        functionName: 'reject-submission',
         functionArgs: [uintCV(submissionId)],
-            ork            ork            ork            ork            ork            ork            ork            ork            ork            ork  console.log('Transac  on            a);
-                                                 co                                                 co                                                 co       ing';
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
+        },
+        onCancel: () => {
+            console.log('Transaction canceled');
+        },
+    };
+
+    await openContractCall(txOptions);
+    return 'pending';
 }
 
 export async function getBounty(bountyId: number, senderAddress: string) {
@@ -106,7 +138,7 @@ export async function getBounty(bountyId: number, senderAddress: string) {
         contractName: BOUNTY_CONTRACT,
         functionName: 'get-bounty',
         functionArgs: [uintCV(bountyId)],
-            ork,
+        network,
         senderAddress,
     });
 
@@ -114,7 +146,10 @@ export async function getBounty(bountyId: number, senderAddress: string) {
 }
 
 export async function getSubmission(submissionId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction    const result = await callReadOnlyFunction    const result = await callReadOnlyFunction    const result 'get-submission',
+    const result = await callReadOnlyFunction({
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: BOUNTY_CONTRACT,
+        functionName: 'get-submission',
         functionArgs: [uintCV(submissionId)],
         network,
         senderAddress,
@@ -136,8 +171,9 @@ export async function getTotalBounties(senderAddress: string) {
     return cvToJSON(result);
 }
 
-export asyexport asyn closeBounty(bountyId: number, senderexport asyexport asyn closeBounty(bountyI{
-export asyexport asyn closeBounty(bouRESS,
+export async function closeBounty(bountyId: number, senderAddress: string) {
+    const txOptions = {
+        contractAddress: CONTRACT_ADDRESS,
         contractName: BOUNTY_CONTRACT,
         functionName: 'close-bounty',
         functionArgs: [uintCV(bountyId)],
@@ -174,7 +210,7 @@ export async function registerResearcher(senderAddress: string) {
     };
 
     await openContractCall(txOptions);
-    await openContrac
+    return 'pending';
 }
 
 export async function getResearcherProfile(
@@ -182,7 +218,8 @@ export async function getResearcherProfile(
     senderAddress: string
 ) {
     const result = await callReadOnlyFunction({
-        contra        contra        contra         contractName: REPUTATION_CONTRACT,
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: REPUTATION_CONTRACT,
         functionName: 'get-researcher-profile',
         functionArgs: [principalCV(researcher)],
         network,
@@ -213,20 +250,7 @@ export async function getTotalResearchers(senderAddress: string) {
         contractAddress: CONTRACT_ADDRESS,
         contractName: REPUTATION_CONTRACT,
         functionName: 'get-total-researchers',
-                                                    enderAddress,
-    });
-
-    return cvToJSON(result);
-}
-}
-  return cvToJSON(result);
- teSuccessRate(
-    researcher: string,
-    senderAddress: string
-) {
-    const result = await callReadOn    const result = await callReadOn : CONTRACT_AD    const resulco    const result = awN_    coCT,
-        functionName: 'calculate-success-rate',
-        functionArgs: [pr        functionArgs: ,
+        functionArgs: [],
         network,
         senderAddress,
     });
@@ -234,14 +258,44 @@ export async function getTotalResearchers(senderAddress: string) {
     return cvToJSON(result);
 }
 
-export async function registerArbiter(seexport async function registerArbiter(sens = {
-        contractAddress: CONTRACT_ADDRESS,        contractAddress: CONTR_CONTRACT,
-                 ame: 'register-arbiter',
-          nctio          nctio          nc
-                                                                     nd                                               =                                         sent:', data);
+export async function calculateSuccessRate(
+    researcher: string,
+    senderAddress: string
+) {
+    const result = await callReadOnlyFunction({
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: REPUTATION_CONTRACT,
+        functionName: 'calculate-success-rate',
+        functionArgs: [principalCV(researcher)],
+        network,
+        senderAddress,
+    });
+
+    return cvToJSON(result);
+}
+
+export async function registerArbiter(senderAddress: string) {
+    const txOptions = {
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: DISPUTE_CONTRACT,
+        functionName: 'register-arbiter',
+        functionArgs: [],
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
         },
-        onCancel: (        onCancel: (        onCancel: (       an        onCancel: (        onCancel: (        onCancel: (      s);
-    retu    retu    retu    retu   nc function createDispute(
+        onCancel: () => {
+            console.log('Transaction canceled');
+        },
+    };
+
+    await openContractCall(txOptions);
+    return 'pending';
+}
+
+export async function createDispute(
     submissionId: number,
     reason: string,
     senderAddress: string
@@ -249,16 +303,49 @@ export async function registerArbiter(seexport async function registerArbiter(se
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
         contractName: DISPUTE_CONTRACT,
-        functionName: 'crea        functionName: 'crea        functionNammi        functionName: 'crea        functionNamek,        functioMo        functionNam
-        post        post        positionMode        post        post        positionMode        post        post        positionM',        post        post        positionMode        post        post        posin c        post        post        positit openContractCall(txOptions);
-    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pTRACT_ADDRESS,
+        functionName: 'create-dispute',
+        functionArgs: [uintCV(submissionId), stringUtf8CV(reason)],
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
+        },
+        onCancel: () => {
+            console.log('Transaction canceled');
+        },
+    };
+
+    await openContractCall(txOptions);
+    return 'pending';
+}
+
+export async function voteOnDispute(
+    disputeId: number,
+    vote: boolean,
+    senderAddress: string
+) {
+    const txOptions = {
+        contractAddress: CONTRACT_ADDRESS,
         contractName: DISPUTE_CONTRACT,
         functionName: 'vote-on-dispute',
-        functionArgs: [uintCV(disputeId), boolCV(v        functionArgs: [uintCV(disputeId), boolCV(v        fuy,        functionArgs: [ude: PostConditionMode.Allow,
+        functionArgs: [uintCV(disputeId), boolCV(vote)],
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
         onFinish: (data: any) => {
-                                                            },
+            console.log('Transaction sent:', data);
+        },
         onCancel: () => {
-                                                                                                                                                                     disputeId: number, senderAddress: string) {
+            console.log('Transaction canceled');
+        },
+    };
+
+    await openContractCall(txOptions);
+    return 'pending';
+}
+
+export async function getDispute(disputeId: number, senderAddress: string) {
     const result = await callReadOnlyFunction({
         contractAddress: CONTRACT_ADDRESS,
         contractName: DISPUTE_CONTRACT,
