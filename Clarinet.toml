@@ -11,15 +11,12 @@ epoch = "3.0"
 
 [contracts.bounty-vault]
 path = "contracts/bounty-vault.clar"
-clarity_version = 2
 
 [contracts.reputation]
 path = "contracts/reputation.clar"
-clarity_version = 2
 
 [contracts.dispute-resolver]
 path = "contracts/dispute-resolver.clar"
-clarity_version = 2
 
 [repl.analysis]
 passes = ["check_checker"]
