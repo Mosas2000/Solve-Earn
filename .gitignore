@@ -10,3 +10,7 @@ coverage/
 .idea/
 *.swp
 *.swo
+
+# Settings with sensitive data
+settings/mainnet.toml
+settings/testnet.toml

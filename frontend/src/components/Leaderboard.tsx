@@ -22,8 +22,8 @@ export function Leaderboard() {
     const loadLeaderboard = async () => {
         setLoading(true);
         try {
-            const totalResult = await getTotalResearchers(address);
-            const total = totalResult.value?.value || 0;
+            // Get total researchers count
+            await getTotalResearchers(address);
 
             const leaderboardData: LeaderboardEntry[] = [];
 

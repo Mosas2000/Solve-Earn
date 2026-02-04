@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
 import { getSubmission, approveSubmission, rejectSubmission, getBounty } from '../utils/contractCalls';
-import type { Submission, Bounty } from '../types';
+import type { Submission } from '../types';
 
 interface SubmissionWithBounty extends Submission {
     bountyTitle?: string;

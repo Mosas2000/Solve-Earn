@@ -1,6 +1,5 @@
 import {
-    makeContractCall,
-    broadcastTransaction,
+    openContractCall,
     AnchorMode,
     PostConditionMode,
     uintCV,
@@ -10,6 +9,7 @@ import {
     callReadOnlyFunction,
     cvToJSON,
     principalCV,
+    boolCV,
 } from '@stacks/transactions';
 import { StacksMainnet } from '@stacks/network';
 import type { CreateBountyForm, SeverityLevel } from '../types';
@@ -40,15 +40,16 @@ export async function createBounty(
             uintCV(formData.lowReward * 1000000),
             uintCV(durationBlocks),
         ],
-        senderAddress,
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
+                                                                saction                                   onCancel: () => {
+            console.log('Transaction canceled');
+        },
     };
 
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
+    await openContractCall(txOptions);
+    return 'pending';
 }
 
 export async function submitVulnerability(
@@ -61,60 +62,42 @@ export async function submitVulnerability(
         contractAddress: CONTRACT_ADDRESS,
         contractName: BOUNTY_CONTRACT,
         functionName: 'submit-vulnerability',
-        functionArgs: [
-            uintCV(bountyId),
-            stringAsciiCV(severity),
-            bufferCV(reportHash),
-        ],
-        senderAddress,
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+                                                   ),                                                                                                            anchorMode: AnchorMode.Any,
+        postConditio        posConditionMode.Allow,
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
+        },
+        onCancel: () => {
+            console.log('Transaction canceled');
+        },
     };
 
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
-}
-
-export async function approveSubmission(
-    submissionId: number,
-    senderAddress: string
+    await openContractCall(txOp    await openContractCall(txOp    await openContractCall(txOp    await openContractCall(txOp    await openContractCall(txing
 ) {
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'approve-submission',
-        functionArgs: [uintCV(submissionId)],
-        senderAddress,
+        contractName: BOUNTY_CONTR        contractNamenName        contractName: BOUNTY_CONTR       rgs: [uintCV(submissionId)],
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
+        },
+        onCancel: () => {
+            console.log('Transaction canceled');
+        },
     };
 
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
+    await openContractCall(txOptions);
+    return 'pending';
 }
 
 export async function rejectSubmission(
-    submissionId: number,
-    senderAddress: string
-) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'reject-submission',
+    submissionId: numb    submissionId: numb    submissionId: numb    suons = {
+        contractAddress: CONT        contractAddress: CONT        contractAddreT,         fu        contractAddress:ission',
         functionArgs: [uintCV(submissionId)],
-        senderAddress,
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-    };
-
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
+            ork            ork            ork            ork            ork            ork            ork            ork            ork            ork  console.log('Transac  on            a);
+                                                 co                                                 co                                                 co       ing';
 }
 
 export async function getBounty(bountyId: number, senderAddress: string) {
@@ -123,7 +106,7 @@ export async function getBounty(bountyId: number, senderAddress: string) {
         contractName: BOUNTY_CONTRACT,
         functionName: 'get-bounty',
         functionArgs: [uintCV(bountyId)],
-        network,
+            ork,
         senderAddress,
     });
 
@@ -131,10 +114,7 @@ export async function getBounty(bountyId: number, senderAddress: string) {
 }
 
 export async function getSubmission(submissionId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'get-submission',
+    const result = await callReadOnlyFunction    const result = await callReadOnlyFunction    const result = await callReadOnlyFunction    const result 'get-submission',
         functionArgs: [uintCV(submissionId)],
         network,
         senderAddress,
@@ -156,39 +136,45 @@ export async function getTotalBounties(senderAddress: string) {
     return cvToJSON(result);
 }
 
-export async function closeBounty(bountyId: number, senderAddress: string) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
+export asyexport asyn closeBounty(bountyId: number, senderexport asyexport asyn closeBounty(bountyI{
+export asyexport asyn closeBounty(bouRESS,
         contractName: BOUNTY_CONTRACT,
         functionName: 'close-bounty',
         functionArgs: [uintCV(bountyId)],
-        senderAddress,
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
+        },
+        onCancel: () => {
+            console.log('Transaction canceled');
+        },
     };
 
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
+    await openContractCall(txOptions);
+    return 'pending';
 }
 
-// Reputation Contract Functions
 export async function registerResearcher(senderAddress: string) {
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
         contractName: REPUTATION_CONTRACT,
         functionName: 'register-researcher',
         functionArgs: [],
-        senderAddress,
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
+        onFinish: (data: any) => {
+            console.log('Transaction sent:', data);
+        },
+        onCancel: () => {
+            console.log('Transaction canceled');
+        },
     };
 
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
+    await openContractCall(txOptions);
+    await openContrac
 }
 
 export async function getResearcherProfile(
@@ -196,8 +182,7 @@ export async function getResearcherProfile(
     senderAddress: string
 ) {
     const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
+        contra        contra        contra         contractName: REPUTATION_CONTRACT,
         functionName: 'get-researcher-profile',
         functionArgs: [principalCV(researcher)],
         network,
@@ -228,23 +213,20 @@ export async function getTotalResearchers(senderAddress: string) {
         contractAddress: CONTRACT_ADDRESS,
         contractName: REPUTATION_CONTRACT,
         functionName: 'get-total-researchers',
-        functionArgs: [],
-        network,
-        senderAddress,
+                                                    enderAddress,
     });
 
     return cvToJSON(result);
 }
-
-export async function calculateSuccessRate(
+}
+  return cvToJSON(result);
+ teSuccessRate(
     researcher: string,
     senderAddress: string
 ) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
+    const result = await callReadOn    const result = await callReadOn : CONTRACT_AD    const resulco    const result = awN_    coCT,
         functionName: 'calculate-success-rate',
-        functionArgs: [principalCV(researcher)],
+        functionArgs: [pr        functionArgs: ,
         network,
         senderAddress,
     });
@@ -252,25 +234,14 @@ export async function calculateSuccessRate(
     return cvToJSON(result);
 }
 
-// Dispute Contract Functions
-export async function registerArbiter(senderAddress: string) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: DISPUTE_CONTRACT,
-        functionName: 'register-arbiter',
-        functionArgs: [],
-        senderAddress,
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-    };
-
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
-}
-
-export async function createDispute(
+export async function registerArbiter(seexport async function registerArbiter(sens = {
+        contractAddress: CONTRACT_ADDRESS,        contractAddress: CONTR_CONTRACT,
+                 ame: 'register-arbiter',
+          nctio          nctio          nc
+                                                                     nd                                               =                                         sent:', data);
+        },
+        onCancel: (        onCancel: (        onCancel: (       an        onCancel: (        onCancel: (        onCancel: (      s);
+    retu    retu    retu    retu   nc function createDispute(
     submissionId: number,
     reason: string,
     senderAddress: string
@@ -278,41 +249,16 @@ export async function createDispute(
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
         contractName: DISPUTE_CONTRACT,
-        functionName: 'create-dispute',
-        functionArgs: [uintCV(submissionId), stringUtf8CV(reason)],
-        senderAddress,
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-    };
-
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
-}
-
-export async function voteOnDispute(
-    disputeId: number,
-    voteFor: boolean,
-    senderAddress: string
-) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
+        functionName: 'crea        functionName: 'crea        functionNammi        functionName: 'crea        functionNamek,        functioMo        functionNam
+        post        post        positionMode        post        post        positionMode        post        post        positionM',        post        post        positionMode        post        post        posin c        post        post        positit openContractCall(txOptions);
+    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pend    return 'pTRACT_ADDRESS,
         contractName: DISPUTE_CONTRACT,
         functionName: 'vote-on-dispute',
-        functionArgs: [uintCV(disputeId), voteFor],
-        senderAddress,
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-    };
-
-    const transaction = await makeContractCall(txOptions);
-    const broadcastResponse = await broadcastTransaction(transaction, network);
-    return broadcastResponse.txid;
-}
-
-export async function getDispute(disputeId: number, senderAddress: string) {
+        functionArgs: [uintCV(disputeId), boolCV(v        functionArgs: [uintCV(disputeId), boolCV(v        fuy,        functionArgs: [ude: PostConditionMode.Allow,
+        onFinish: (data: any) => {
+                                                            },
+        onCancel: () => {
+                                                                                                                                                                     disputeId: number, senderAddress: string) {
     const result = await callReadOnlyFunction({
         contractAddress: CONTRACT_ADDRESS,
         contractName: DISPUTE_CONTRACT,
