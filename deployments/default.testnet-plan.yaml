@@ -29,4 +29,4 @@ plan:
             path: contracts/reputation.clar
             anchor-block-only: true
             clarity-version: 2
-      epoch: "2.05"
+      epoch: "2.1"
