@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
-import { getBounty } from '../utils/contractCalls';
+import { getBounty, getTotalBounties } from '../utils/contractCalls';
+import { SubmitVulnerability } from './SubmitVulnerability';
 import type { Bounty } from '../types';
 
 export function BountyList() {
     const { address, isConnected } = useStacks();
     const [bounties, setBounties] = useState<Bounty[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedBounty, setSelectedBounty] = useState<number | null>(null);
+    const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('active');
 
     useEffect(() => {
         if (isConnected) {
@@ -17,8 +20,17 @@ export function BountyList() {
     const loadBounties = async () => {
         setLoading(true);
         try {
+            // Get total bounties count
+            let totalBounties = 10;
+            try {
+                const totalResult = await getTotalBounties(address);
+                totalBounties = totalResult.value?.value || 10;
+            } catch (err) {
+                console.log('Could not get total bounties, using default');
+            }
+
             const bountyData: Bounty[] = [];
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= Math.min(totalBounties, 50); i++) {
                 try {
                     const result = await getBounty(i, address);
                     if (result.value) {
@@ -42,12 +54,33 @@ export function BountyList() {
                     break;
                 }
             }
-            setBounties(bountyData.filter((b) => b.isActive));
+            setBounties(bountyData);
         } catch (error) {
             console.error('Failed to load bounties:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const filteredBounties = bounties.filter((bounty) => {
+        if (filter === 'active') return bounty.isActive && bounty.remainingPool > 0;
+        if (filter === 'expired') return !bounty.isActive || bounty.remainingPool === 0;
+        return true;
+    });
+
+    const handleSubmitClick = (bountyId: number) => {
+        if (!isConnected) {
+            alert('Please connect your wallet first');
+            return;
+        }
+        setSelectedBounty(bountyId);
+    };
+
+    const handleSubmitSuccess = () => {
+        // Refresh bounties after successful submission
+        setTimeout(() => {
+            loadBounties();
+        }, 2000);
     };
 
     if (loading) {
@@ -57,21 +90,53 @@ export function BountyList() {
     return (
         <div className="bounty-list">
             <div className="header">
-                <h2>Active Bounties</h2>
-                <button onClick={loadBounties}>Refresh</button>
+                <h2>Bug Bounty Programs</h2>
+                <div className="header-actions">
+                    <div className="filter-buttons">
+                        <button
+                            className={filter === 'all' ? 'active' : ''}
+                            onClick={() => setFilter('all')}
+                        >
+                            All
+                        </button>
+                        <button
+                            className={filter === 'active' ? 'active' : ''}
+                            onClick={() => setFilter('active')}
+                        >
+                            Active
+                        </button>
+                        <button
+                            className={filter === 'expired' ? 'active' : ''}
+                            onClick={() => setFilter('expired')}
+                        >
+                            Expired
+                        </button>
+                    </div>
+                    <button onClick={loadBounties} className="refresh-btn">
+                        Refresh
+                    </button>
+                </div>
             </div>
 
-            {bounties.length === 0 ? (
+            {filteredBounties.length === 0 ? (
                 <div className="empty-state">
-                    <p>No active bounties found</p>
+                    <p>No {filter !== 'all' ? filter : ''} bounties found</p>
+                    <p>Check back later or create your own!</p>
                 </div>
             ) : (
                 <div className="bounties-grid">
-                    {bounties.map((bounty) => (
+                    {filteredBounties.map((bounty) => (
                         <div key={bounty.id} className="bounty-card">
                             <div className="bounty-header">
                                 <h3>{bounty.title}</h3>
-                                <span className="bounty-id">#{bounty.id}</span>
+                                <div className="bounty-meta">
+                                    <span className="bounty-id">#{bounty.id}</span>
+                                    {bounty.isActive && bounty.remainingPool > 0 ? (
+                                        <span className="status-badge active">Active</span>
+                                    ) : (
+                                        <span className="status-badge inactive">Closed</span>
+                                    )}
+                                </div>
                             </div>
 
                             <p className="description">{bounty.description}</p>
@@ -79,40 +144,66 @@ export function BountyList() {
                             <div className="bounty-stats">
                                 <div className="stat">
                                     <span className="label">Total Pool</span>
-                                    <span className="value">{bounty.totalPool} STX</span>
+                                    <span className="value">{bounty.totalPool.toFixed(2)} STX</span>
                                 </div>
                                 <div className="stat">
                                     <span className="label">Remaining</span>
-                                    <span className="value">{bounty.remainingPool} STX</span>
+                                    <span className="value remaining">
+                                        {bounty.remainingPool.toFixed(2)} STX
+                                    </span>
                                 </div>
                             </div>
 
                             <div className="rewards">
                                 <h4>Reward Tiers</h4>
-                                <div className="reward-tier critical">
-                                    <span>Critical</span>
-                                    <span>{bounty.criticalReward} STX</span>
-                                </div>
-                                <div className="reward-tier high">
-                                    <span>High</span>
-                                    <span>{bounty.highReward} STX</span>
-                                </div>
-                                <div className="reward-tier medium">
-                                    <span>Medium</span>
-                                    <span>{bounty.mediumReward} STX</span>
-                                </div>
-                                <div className="reward-tier low">
-                                    <span>Low</span>
-                                    <span>{bounty.lowReward} STX</span>
+                                <div className="reward-tiers">
+                                    <div className="reward-tier critical">
+                                        <span className="tier-name">Critical</span>
+                                        <span className="tier-value">{bounty.criticalReward.toFixed(2)} STX</span>
+                                    </div>
+                                    <div className="reward-tier high">
+                                        <span className="tier-name">High</span>
+                                        <span className="tier-value">{bounty.highReward.toFixed(2)} STX</span>
+                                    </div>
+                                    <div className="reward-tier medium">
+                                        <span className="tier-name">Medium</span>
+                                        <span className="tier-value">{bounty.mediumReward.toFixed(2)} STX</span>
+                                    </div>
+                                    <div className="reward-tier low">
+                                        <span className="tier-name">Low</span>
+                                        <span className="tier-value">{bounty.lowReward.toFixed(2)} STX</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="bounty-footer">
-                                <button className="submit-btn">Submit Finding</button>
+                                <div className="project-info">
+                                    <span className="label">Project:</span>
+                                    <span className="address">
+                                        {bounty.project.slice(0, 6)}...{bounty.project.slice(-4)}
+                                    </span>
+                                </div>
+                                {bounty.isActive && bounty.remainingPool > 0 && (
+                                    <button
+                                        className="submit-btn"
+                                        onClick={() => handleSubmitClick(bounty.id)}
+                                        disabled={!isConnected}
+                                    >
+                                        Submit Finding
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
                 </div>
+            )}
+
+            {selectedBounty && (
+                <SubmitVulnerability
+                    bountyId={selectedBounty}
+                    onClose={() => setSelectedBounty(null)}
+                    onSuccess={handleSubmitSuccess}
+                />
             )}
         </div>
     );
