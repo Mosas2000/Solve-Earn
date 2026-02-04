@@ -1,5 +1,5 @@
+import { openContractCall } from '@stacks/connect';
 import {
-    openContractCall,
     AnchorMode,
     PostConditionMode,
     uintCV,
