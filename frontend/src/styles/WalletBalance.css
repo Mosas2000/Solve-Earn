@@ -1,0 +1,32 @@
+.wallet-balance-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--surface-light);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.balance-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.balance-amount {
+  font-size: 0.875rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.balance-error {
+  font-size: 0.875rem;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.wallet-balance-container.error {
+  border-color: #fee2e2;
+  background: #fef2f2;
+}
