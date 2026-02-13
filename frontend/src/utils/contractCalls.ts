@@ -4,6 +4,7 @@ import {
     PostConditionMode,
     uintCV,
     stringUtf8CV,
+    stringAsciiCV,
     bufferCV,
     callReadOnlyFunction,
     cvToJSON,
@@ -66,7 +67,7 @@ export async function submitVulnerability(
         functionName: 'submit-vulnerability',
         functionArgs: [
             uintCV(bountyId),
-            stringUtf8CV(severity),
+            stringAsciiCV(severity),
             bufferCV(reportHash),
         ],
         network,
