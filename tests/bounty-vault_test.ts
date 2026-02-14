@@ -382,3 +382,41 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(200);
     }
 });
+
+Clarinet.test({
+    name: "Project owner can close active bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Close Test Bounty"),
+                    types.utf8("Testing bounty closure functionality"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Close the bounty
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'close-bounty',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+    }
+});
