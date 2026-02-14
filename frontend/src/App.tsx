@@ -5,13 +5,15 @@ import { BountyList } from './components/BountyList';
 import { Leaderboard } from './components/Leaderboard';
 import { Dashboard } from './components/Dashboard';
 import { ManageSubmissions } from './components/ManageSubmissions';
+import { ToastProvider } from './components/ToastProvider';
 import './App.css';
 
 function App() {
     const { connect, disconnect, isConnected, address } = useStacks();
 
     return (
-        <BrowserRouter>
+        <ToastProvider>
+            <BrowserRouter>
             <div className="app">
                 <nav className="navbar">
                     <div className="nav-brand">
@@ -92,7 +94,8 @@ function App() {
                 </footer>
             </div>
         </BrowserRouter>
+        </ToastProvider>
     );
 }
 
-export default App;
+export default App;export default App;
