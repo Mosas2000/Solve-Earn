@@ -9,20 +9,22 @@
     "lint": "eslint src --ext ts,tsx"
   },
   "dependencies": {
-    "@stacks/connect": "^7.8.2",
-    "@stacks/transactions": "^6.13.1",
-    "@stacks/network": "^6.13.1",
     "@stacks/blockchain-api-client": "^7.8.1",
+    "@stacks/connect": "^7.8.2",
+    "@stacks/network": "^6.13.1",
+    "@stacks/transactions": "^6.13.1",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.22.0"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^8.57.0",
     "typescript": "^5.5.3",
-    "vite": "^5.3.4",
-    "eslint": "^8.57.0"
+    "vite": "^5.3.4"
   }
 }
