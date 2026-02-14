@@ -205,3 +205,7 @@
 (define-read-only (get-total-bounties)
     (ok (var-get bounty-nonce))
 )
+
+(define-read-only (get-total-submissions)
+    (ok (var-get submission-nonce))
+)
