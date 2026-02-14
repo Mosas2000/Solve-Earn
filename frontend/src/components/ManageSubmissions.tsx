@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
 import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '../utils/contractCalls';
-import type { Submission } from '../types';
+import { getReport } from '../utils/reportStorage';
+import type { Submission, StoredReport } from '../types';
 import '../styles/ErrorStates.css';
 
 interface SubmissionWithBounty extends Submission {
     bountyTitle?: string;
+    reportContent?: StoredReport | null;
 }
 
 export function ManageSubmissions() {
@@ -91,16 +93,29 @@ export function ManageSubmissions() {
                             console.warn(`Submission ${sub.index} missing required fields:`, sub.value);
                             continue;
                         }
+                        
+                        const reportHash = sub.value['report-hash']?.value || '';
+                        
+                        // Fetch off-chain report content if available
+                        let reportContent: StoredReport | null = null;
+                        if (reportHash) {
+                            reportContent = getReport(reportHash);
+                            if (!reportContent) {
+                                console.warn(`Report not found for hash: ${reportHash}`);
+                            }
+                        }
+                        
                         submissionData.push({
                             id: sub.index,
                             bountyId: sub.bountyId,
                             researcher: sub.value.researcher.value,
                             severity: sub.value.severity.value,
-                            reportHash: sub.value['report-hash']?.value || '',
+                            reportHash,
                             submittedAt: sub.value['submitted-at']?.value || 0,
                             status: sub.value.status?.value || 'pending',
                             rewardAmount: (sub.value['reward-amount']?.value || 0) / 1000000,
                             bountyTitle: bounty.title?.value || 'Untitled Bounty',
+                            reportContent,
                         });
                     }
                 } catch (parseErr) {
