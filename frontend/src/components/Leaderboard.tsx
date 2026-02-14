@@ -25,8 +25,6 @@ export function Leaderboard() {
             // Get total researchers count
             await getTotalResearchers(address);
 
-            const leaderboardData: LeaderboardEntry[] = [];
-
             // For demo purposes, we'll load a sample of researchers
             // In production, you'd want to implement pagination or load from a backend
             const sampleAddresses = [
@@ -34,30 +32,39 @@ export function Leaderboard() {
                 // Add more known addresses if available
             ];
 
-            for (const researcherAddress of sampleAddresses) {
-                try {
-                    const profileResult = await getResearcherProfile(researcherAddress, address);
-                    
-                    if (profileResult.value) {
-                        const successRateResult = await calculateSuccessRate(researcherAddress, address);
-                        const successRate = successRateResult.value?.value || 0;
+            // Fetch all researcher profiles and success rates in parallel
+            const results = await Promise.allSettled(
+                sampleAddresses.map(async (researcherAddress) => {
+                    const [profileResult, successRateResult] = await Promise.all([
+                        getResearcherProfile(researcherAddress, address),
+                        calculateSuccessRate(researcherAddress, address),
+                    ]);
 
-                        leaderboardData.push({
-                            researcher: researcherAddress,
-                            totalSubmissions: profileResult.value['total-submissions'].value,
-                            acceptedSubmissions: profileResult.value['accepted-submissions'].value,
-                            rejectedSubmissions: profileResult.value['rejected-submissions'].value,
-                            totalEarned: profileResult.value['total-earned'].value / 1000000,
-                            reputationScore: profileResult.value['reputation-score'].value,
-                            joinedAt: profileResult.value['joined-at'].value,
-                            isVerified: profileResult.value['is-verified'].value,
-                            successRate: successRate,
-                        });
+                    if (!profileResult.value) {
+                        return null;
                     }
-                } catch (err) {
-                    console.error(`Failed to load profile for ${researcherAddress}:`, err);
+
+                    const successRate = successRateResult.value?.value || 0;
+                    return {
+                        researcher: researcherAddress,
+                        totalSubmissions: profileResult.value['total-submissions'].value,
+                        acceptedSubmissions: profileResult.value['accepted-submissions'].value,
+                        rejectedSubmissions: profileResult.value['rejected-submissions'].value,
+                        totalEarned: profileResult.value['total-earned'].value / 1000000,
+                        reputationScore: profileResult.value['reputation-score'].value,
+                        joinedAt: profileResult.value['joined-at'].value,
+                        isVerified: profileResult.value['is-verified'].value,
+                        successRate: successRate,
+                    } as LeaderboardEntry;
+                })
+            );
+
+            const leaderboardData: LeaderboardEntry[] = [];
+            results.forEach((result) => {
+                if (result.status === 'fulfilled' && result.value !== null) {
+                    leaderboardData.push(result.value);
                 }
-            }
+            });
 
             setResearchers(leaderboardData);
         } catch (err) {
