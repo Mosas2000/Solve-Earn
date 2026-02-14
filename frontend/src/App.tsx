@@ -6,6 +6,7 @@ import { Leaderboard } from './components/Leaderboard';
 import { Dashboard } from './components/Dashboard';
 import { ManageSubmissions } from './components/ManageSubmissions';
 import { ToastProvider } from './components/ToastProvider';
+import { TransactionStatusNotifications } from './components/TransactionStatusNotifications';
 import './App.css';
 
 function App() {
@@ -15,6 +16,8 @@ function App() {
         <ToastProvider>
             <BrowserRouter>
             <div className="app">
+                <TransactionStatusNotifications />
+                
                 <nav className="navbar">
                     <div className="nav-brand">
                         <h1>Solve-Earn</h1>

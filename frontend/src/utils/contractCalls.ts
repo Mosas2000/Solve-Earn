@@ -13,6 +13,8 @@ import {
 } from '@stacks/transactions';
 import { StacksMainnet } from '@stacks/network';
 import type { CreateBountyForm, SeverityLevel } from '../types';
+import { transactionTracker } from './transactionTracker';
+import { getExplorerTxUrl } from './explorerUtils';
 
 const network = new StacksMainnet();
 const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
@@ -22,102 +24,184 @@ const DISPUTE_CONTRACT = 'dispute-resolver';
 
 export async function createBounty(
     formData: CreateBountyForm,
-    senderAddress: string
-) {
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
     const durationBlocks = formData.durationDays * 144;
 
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'create-bounty',
-        functionArgs: [
-            stringUtf8CV(formData.title),
-            stringUtf8CV(formData.description),
-            uintCV(formData.totalPool * 1000000),
-            uintCV(formData.criticalReward * 1000000),
-            uintCV(formData.highReward * 1000000),
-            uintCV(formData.mediumReward * 1000000),
-            uintCV(formData.lowReward * 1000000),
-            uintCV(durationBlocks),
-        ],
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-        onFinish: (data: any) => {
-            console.log('Transaction sent:', data);
-        },
-        onCancel: () => {
-            console.log('Transaction canceled');
-        },
-    };
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'create-bounty',
+            functionArgs: [
+                stringUtf8CV(formData.title),
+                stringUtf8CV(formData.description),
+                uintCV(formData.totalPool * 1000000),
+                uintCV(formData.criticalReward * 1000000),
+                uintCV(formData.highReward * 1000000),
+                uintCV(formData.mediumReward * 1000000),
+                uintCV(formData.lowReward * 1000000),
+                uintCV(durationBlocks),
+            ],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Transaction broadcast:', data);
+                const txId = data.txId;
+                
+                // Track the transaction
+                transactionTracker.trackTransaction(
+                    txId,
+                    'create-bounty',
+                    onSuccess,
+                    onError
+                );
+                
+                resolve(txId);
+            },
+            onCancel: () => {
+                console.log('Transaction canceled');
+                const error = 'Transaction canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
 
-    await openContractCall(txOptions);
-    return 'pending';
+        openContractCall(txOptions);
+    });
 }
 
 export async function submitVulnerability(
     bountyId: number,
     severity: SeverityLevel,
     reportHash: Uint8Array,
-    senderAddress: string
-) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'submit-vulnerability',
-        functionArgs: [
-            uintCV(bountyId),
-            stringAsciiCV(severity),
-            bufferCV(reportHash),
-        ],
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-        onFinish: (data: any) => {
-            console.log('Transaction sent:', data);
-        },
-        onCancel: () => {
-            console.log('Transaction canceled');
-        },
-    };
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'submit-vulnerability',
+            functionArgs: [
+                uintCV(bountyId),
+                stringAsciiCV(severity),
+                bufferCV(reportHash),
+            ],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Transaction broadcast:', data);
+                const txId = data.txId;
+                
+                // Track the transaction
+                transactionTracker.trackTransaction(
+                    txId,
+                    'submit-vulnerability',
+                    onSuccess,
+                    onError
+                );
+                
+                resolve(txId);
+            },
+            onCancel: () => {
+                console.log('Transaction canceled');
+                const error = 'Transaction canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
 
-    await openContractCall(txOptions);
-    return 'pending';
+        openContractCall(txOptions);
+    });
 }
 
 export async function approveSubmission(
     submissionId: number,
-    senderAddress: string
-) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'approve-submission',
-        functionArgs: [uintCV(submissionId)],
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-        onFinish: (data: any) => {
-            console.log('Transaction sent:', data);
-        },
-        onCancel: () => {
-            console.log('Transaction canceled');
-        },
-    };
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'approve-submission',
+            functionArgs: [uintCV(submissionId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Transaction broadcast:', data);
+                const txId = data.txId;
+                
+                // Track the transaction
+                transactionTracker.trackTransaction(
+                    txId,
+                    'approve-submission',
+                    onSuccess,
+                    onError
+                );
+                
+                resolve(txId);
+            },
+            onCancel: () => {
+                console.log('Transaction canceled');
+                const error = 'Transaction canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
 
-    await openContractCall(txOptions);
-    return 'pending';
+        openContractCall(txOptions);
+    });
 }
 
 export async function rejectSubmission(
     submissionId: number,
-    senderAddress: string
-) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'reject-submission',
-        functionArgs: [uintCV(submissionId)],
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'reject-submission',
+            functionArgs: [uintCV(submissionId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Transaction broadcast:', data);
+                const txId = data.txId;
+                
+                // Track the transaction
+                transactionTracker.trackTransaction(
+                    txId,
+                    'reject-submission',
+                    onSuccess,
+                    onError
+                );
+                
+                resolve(txId);
+            },
+            onCancel: () => {
+                console.log('Transaction canceled');
+                const error = 'Transaction canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,

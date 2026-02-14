@@ -76,3 +76,28 @@ export interface CreateBountyForm {
     lowReward: number;
     durationDays: number;
 }
+
+export type TransactionStatus = 
+    | 'pending'       // Wallet popup shown, awaiting user action
+    | 'broadcasting'  // Transaction broadcast to network
+    | 'confirming'    // Transaction in mempool, waiting for confirmation
+    | 'success'       // Transaction confirmed on-chain
+    | 'failed'        // Transaction failed during mining
+    | 'cancelled';    // User cancelled in wallet
+
+export interface TransactionInfo {
+    txId: string;
+    status: TransactionStatus;
+    functionName: string;
+    timestamp: number;
+    explorerUrl: string;
+    errorMessage?: string;
+}
+
+export interface PendingTransaction {
+    txId: string;
+    functionName: string;
+    startedAt: number;
+    onSuccess?: () => void;
+    onError?: (error: string) => void;
+}

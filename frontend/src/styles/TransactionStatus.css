@@ -1,0 +1,174 @@
+/* Transaction Status Notifications */
+
+.transaction-notifications {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 400px;
+}
+
+.transaction-notification {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.3s ease-out;
+    position: relative;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.transaction-notification.info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+    color: white;
+}
+
+.transaction-notification.success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
+    color: white;
+}
+
+.transaction-notification.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+    color: white;
+}
+
+.transaction-notification.warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.95));
+    color: white;
+}
+
+.tx-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.transaction-notification.success .tx-icon,
+.transaction-notification.error .tx-icon,
+.transaction-notification.warning .tx-icon {
+    animation: none;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.tx-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tx-message {
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.tx-link {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    display: inline-block;
+    width: fit-content;
+}
+
+.tx-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateX(2px);
+}
+
+.tx-dismiss {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.tx-dismiss:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .transaction-notifications {
+        left: 20px;
+        right: 20px;
+        top: 70px;
+        max-width: none;
+    }
+
+    .transaction-notification {
+        padding: 12px;
+    }
+
+    .tx-icon {
+        font-size: 20px;
+    }
+
+    .tx-message {
+        font-size: 0.875rem;
+    }
+
+    .tx-link {
+        font-size: 0.8125rem;
+        padding: 4px 10px;
+    }
+}
+
+/* Animation for leaving */
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
