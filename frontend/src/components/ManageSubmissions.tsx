@@ -28,9 +28,14 @@ export function ManageSubmissions() {
             let totalSubs = 50;
             try {
                 const totalResult = await getTotalSubmissions(address);
-                totalSubs = totalResult.value?.value || 50;
+                if (!totalResult?.value?.value) {
+                    console.warn('getTotalSubmissions returned unexpected format:', totalResult);
+                    throw new Error('Invalid response format from getTotalSubmissions');
+                }
+                totalSubs = totalResult.value.value;
             } catch (err) {
-                console.log('Could not get total submissions, using default');
+                console.error('Failed to get total submissions count:', err);
+                setError('Failed to fetch submission count. Using default value.');
             }
 
             // Fetch all submissions in parallel
@@ -43,11 +48,18 @@ export function ManageSubmissions() {
             const validSubs: { index: number; bountyId: number; value: any }[] = [];
             subResults.forEach((result, i) => {
                 if (result.status === 'fulfilled' && result.value?.value) {
-                    validSubs.push({
-                        index: subIds[i],
-                        bountyId: result.value.value['bounty-id'].value,
-                        value: result.value.value,
-                    });
+                    const v = result.value.value;
+                    if (v['bounty-id']?.value) {
+                        validSubs.push({
+                            index: subIds[i],
+                            bountyId: v['bounty-id'].value,
+                            value: v,
+                        });
+                    } else {
+                        console.warn(`Submission ${subIds[i]} missing bounty-id:`, v);
+                    }
+                } else if (result.status === 'rejected') {
+                    console.error(`Failed to fetch submission ${subIds[i]}:`, result.reason);
                 }
             });
 
@@ -62,32 +74,48 @@ export function ManageSubmissions() {
             bountyResults.forEach((result, i) => {
                 if (result.status === 'fulfilled' && result.value?.value) {
                     bountyMap.set(uniqueBountyIds[i], result.value.value);
+                } else if (result.status === 'rejected') {
+                    console.error(`Failed to fetch bounty ${uniqueBountyIds[i]}:`, result.reason);
                 }
             });
 
             // Filter submissions that belong to bounties owned by the current user
             const submissionData: SubmissionWithBounty[] = [];
             for (const sub of validSubs) {
-                const bounty = bountyMap.get(sub.bountyId);
-                if (bounty && bounty.project.value === address) {
-                    submissionData.push({
-                        id: sub.index,
-                        bountyId: sub.bountyId,
-                        researcher: sub.value.researcher.value,
-                        severity: sub.value.severity.value,
-                        reportHash: sub.value['report-hash'].value,
-                        submittedAt: sub.value['submitted-at'].value,
-                        status: sub.value.status.value,
-                        rewardAmount: sub.value['reward-amount'].value / 1000000,
-                        bountyTitle: bounty.title.value,
-                    });
+                try {
+                    const bounty = bountyMap.get(sub.bountyId);
+                    if (bounty && bounty.project?.value === address) {
+                        // Validate required fields
+                        if (!sub.value.researcher?.value || !sub.value.severity?.value) {
+                            console.warn(`Submission ${sub.index} missing required fields:`, sub.value);
+                            continue;
+                        }
+                        submissionData.push({
+                            id: sub.index,
+                            bountyId: sub.bountyId,
+                            researcher: sub.value.researcher.value,
+                            severity: sub.value.severity.value,
+                            reportHash: sub.value['report-hash']?.value || '',
+                            submittedAt: sub.value['submitted-at']?.value || 0,
+                            status: sub.value.status?.value || 'pending',
+                            rewardAmount: (sub.value['reward-amount']?.value || 0) / 1000000,
+                            bountyTitle: bounty.title?.value || 'Untitled Bounty',
+                        });
+                    }
+                } catch (parseErr) {
+                    console.error(`Failed to parse submission ${sub.index}:`, parseErr);
                 }
+            }
+
+            if (submissionData.length === 0 && validSubs.length > 0) {
+                setError('No submissions found for your bounties. The submissions may belong to other projects.');
             }
 
             setSubmissions(submissionData);
         } catch (err) {
             console.error('Failed to load submissions:', err);
-            setError('Failed to load submissions');
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(`Failed to load submissions: ${errorMessage}`);
         } finally {
             setLoading(false);
         }
@@ -153,6 +181,24 @@ export function ManageSubmissions() {
         return (
             <div className="manage-submissions">
                 <div className="loading">Loading submissions...</div>
+            </div>
+        );
+    }
+
+    if (error && submissions.length === 0) {
+        return (
+            <div className="manage-submissions">
+                <div className="header">
+                    <h2>Manage Submissions</h2>
+                </div>
+                <div className="error-state">
+                    <div className="error-icon">⚠️</div>
+                    <h3>Failed to Load Submissions</h3>
+                    <p>{error}</p>
+                    <button onClick={loadSubmissions} className="retry-btn">
+                        Try Again
+                    </button>
+                </div>
             </div>
         );
     }
