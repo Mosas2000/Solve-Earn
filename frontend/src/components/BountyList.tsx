@@ -29,31 +29,36 @@ export function BountyList() {
                 console.log('Could not get total bounties, using default');
             }
 
+            const count = Math.min(totalBounties, 50);
+            const ids = Array.from({ length: count }, (_, i) => i + 1);
+
+            // Fetch all bounties in parallel instead of sequentially
+            const results = await Promise.allSettled(
+                ids.map((id) => getBounty(id, address))
+            );
+
             const bountyData: Bounty[] = [];
-            for (let i = 1; i <= Math.min(totalBounties, 50); i++) {
-                try {
-                    const result = await getBounty(i, address);
-                    if (result.value) {
-                        bountyData.push({
-                            id: i,
-                            project: result.value.project.value,
-                            title: result.value.title.value,
-                            description: result.value.description.value,
-                            totalPool: result.value['total-pool'].value / 1000000,
-                            remainingPool: result.value['remaining-pool'].value / 1000000,
-                            criticalReward: result.value['critical-reward'].value / 1000000,
-                            highReward: result.value['high-reward'].value / 1000000,
-                            mediumReward: result.value['medium-reward'].value / 1000000,
-                            lowReward: result.value['low-reward'].value / 1000000,
-                            expiresAt: result.value['expires-at'].value,
-                            createdAt: result.value['created-at'].value,
-                            isActive: result.value['is-active'].value,
-                        });
-                    }
-                } catch (error) {
-                    break;
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value?.value) {
+                    const v = result.value.value;
+                    bountyData.push({
+                        id: ids[index],
+                        project: v.project.value,
+                        title: v.title.value,
+                        description: v.description.value,
+                        totalPool: v['total-pool'].value / 1000000,
+                        remainingPool: v['remaining-pool'].value / 1000000,
+                        criticalReward: v['critical-reward'].value / 1000000,
+                        highReward: v['high-reward'].value / 1000000,
+                        mediumReward: v['medium-reward'].value / 1000000,
+                        lowReward: v['low-reward'].value / 1000000,
+                        expiresAt: v['expires-at'].value,
+                        createdAt: v['created-at'].value,
+                        isActive: v['is-active'].value,
+                    });
                 }
-            }
+            });
+
             setBounties(bountyData);
         } catch (error) {
             console.error('Failed to load bounties:', error);

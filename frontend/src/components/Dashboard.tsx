@@ -64,70 +64,77 @@ export function Dashboard() {
                 console.log('User not registered as researcher');
             }
 
-            // Load user's bounties
-            const myBounties: Bounty[] = [];
+            // Fetch total counts in parallel
             let totalBountyCount = 20;
-            try {
-                const totalResult = await getTotalBounties(address);
-                totalBountyCount = totalResult.value?.value || 20;
-            } catch (err) {
-                console.log('Could not get total bounties, using default');
-            }
-
-            for (let i = 1; i <= totalBountyCount; i++) {
-                try {
-                    const result = await getBounty(i, address);
-                    if (result.value && result.value.project.value === address) {
-                        myBounties.push({
-                            id: i,
-                            project: result.value.project.value,
-                            title: result.value.title.value,
-                            description: result.value.description.value,
-                            totalPool: result.value['total-pool'].value / 1000000,
-                            remainingPool: result.value['remaining-pool'].value / 1000000,
-                            criticalReward: result.value['critical-reward'].value / 1000000,
-                            highReward: result.value['high-reward'].value / 1000000,
-                            mediumReward: result.value['medium-reward'].value / 1000000,
-                            lowReward: result.value['low-reward'].value / 1000000,
-                            expiresAt: result.value['expires-at'].value,
-                            createdAt: result.value['created-at'].value,
-                            isActive: result.value['is-active'].value,
-                        });
-                    }
-                } catch (err) {
-                    break;
-                }
-            }
-
-            // Load user's submissions
-            const mySubmissions: Submission[] = [];
             let totalSubCount = 50;
             try {
-                const subResult = await getTotalSubmissions(address);
-                totalSubCount = subResult.value?.value || 50;
+                const [bountyCountResult, subCountResult] = await Promise.allSettled([
+                    getTotalBounties(address),
+                    getTotalSubmissions(address),
+                ]);
+                if (bountyCountResult.status === 'fulfilled') {
+                    totalBountyCount = bountyCountResult.value?.value?.value || 20;
+                }
+                if (subCountResult.status === 'fulfilled') {
+                    totalSubCount = subCountResult.value?.value?.value || 50;
+                }
             } catch (err) {
-                console.log('Could not get total submissions, using default');
+                console.log('Could not get totals, using defaults');
             }
 
-            for (let i = 1; i <= totalSubCount; i++) {
-                try {
-                    const result = await getSubmission(i, address);
-                    if (result.value && result.value.researcher.value === address) {
-                        mySubmissions.push({
-                            id: i,
-                            bountyId: result.value['bounty-id'].value,
-                            researcher: result.value.researcher.value,
-                            severity: result.value.severity.value,
-                            reportHash: result.value['report-hash'].value,
-                            submittedAt: result.value['submitted-at'].value,
-                            status: result.value.status.value,
-                            rewardAmount: result.value['reward-amount'].value / 1000000,
+            // Fetch all bounties and submissions in parallel
+            const bountyIds = Array.from({ length: totalBountyCount }, (_, i) => i + 1);
+            const subIds = Array.from({ length: totalSubCount }, (_, i) => i + 1);
+
+            const [bountyResults, subResults] = await Promise.all([
+                Promise.allSettled(bountyIds.map((id) => getBounty(id, address))),
+                Promise.allSettled(subIds.map((id) => getSubmission(id, address))),
+            ]);
+
+            // Filter bounties owned by the current user
+            const myBounties: Bounty[] = [];
+            bountyResults.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value?.value) {
+                    const v = result.value.value;
+                    if (v.project.value === address) {
+                        myBounties.push({
+                            id: bountyIds[index],
+                            project: v.project.value,
+                            title: v.title.value,
+                            description: v.description.value,
+                            totalPool: v['total-pool'].value / 1000000,
+                            remainingPool: v['remaining-pool'].value / 1000000,
+                            criticalReward: v['critical-reward'].value / 1000000,
+                            highReward: v['high-reward'].value / 1000000,
+                            mediumReward: v['medium-reward'].value / 1000000,
+                            lowReward: v['low-reward'].value / 1000000,
+                            expiresAt: v['expires-at'].value,
+                            createdAt: v['created-at'].value,
+                            isActive: v['is-active'].value,
                         });
                     }
-                } catch (err) {
-                    break;
                 }
-            }
+            });
+
+            // Filter submissions belonging to the current user
+            const mySubmissions: Submission[] = [];
+            subResults.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value?.value) {
+                    const v = result.value.value;
+                    if (v.researcher.value === address) {
+                        mySubmissions.push({
+                            id: subIds[index],
+                            bountyId: v['bounty-id'].value,
+                            researcher: v.researcher.value,
+                            severity: v.severity.value,
+                            reportHash: v['report-hash'].value,
+                            submittedAt: v['submitted-at'].value,
+                            status: v.status.value,
+                            rewardAmount: v['reward-amount'].value / 1000000,
+                        });
+                    }
+                }
+            });
 
             setStats({
                 myBounties,
