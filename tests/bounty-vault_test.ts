@@ -275,3 +275,56 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(207);
     }
 });
+
+Clarinet.test({
+    name: "Project can reject a vulnerability submission",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Rejection Test Bounty"),
+                    types.utf8("Testing submission rejection flow"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Researcher submits vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("medium"),
+                    types.buff(new Uint8Array(32).fill(10))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Project rejects the submission
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'reject-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+    }
+});
