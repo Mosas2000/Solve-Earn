@@ -639,3 +639,32 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(202);
     }
 });
+
+Clarinet.test({
+    name: "Prevents bounty creation with insufficient pool for rewards",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+
+        // Try to create bounty where total-pool < sum of rewards
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Invalid Pool Bounty"),
+                    types.utf8("Pool smaller than reward sum"),
+                    types.uint(1000000),  // Pool is 1M
+                    types.uint(2000000),  // But rewards sum to much more
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Should fail with err u202 (insufficient funds)
+        block.receipts[0].result.expectErr().expectUint(202);
+    }
+});
