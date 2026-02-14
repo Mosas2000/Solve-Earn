@@ -218,7 +218,16 @@
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
         (if (> remaining u0)
-            (try! (as-contract (stx-transfer? remaining tx-sender (get project bounty))))
+            (begin
+                (try! (as-contract (stx-transfer? remaining tx-sender (get project bounty))))
+                (print {
+                    event: "bounty-refund",
+                    bounty-id: bounty-id,
+                    amount: remaining,
+                    recipient: (get project bounty),
+                    block-height: block-height
+                })
+            )
             true
         )
         (map-set bounties
