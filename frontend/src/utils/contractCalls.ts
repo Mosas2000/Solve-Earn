@@ -134,20 +134,44 @@ export async function rejectSubmission(
 }
 
 export async function getBounty(bountyId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'get-bounty',
-        functionArgs: [uintCV(bountyId)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-bounty',
+            functionArgs: [uintCV(bountyId)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getBounty');
+        return parsed;
+    } catch (error) {
+        console.error(`getBounty(${bountyId}) failed:`, error);
+        throw new Error(`Failed to fetch bounty #${bountyId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function getSubmission(submissionId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction({
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-submission',
+            functionArgs: [uintCV(submissionId)],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getSubmission');
+        return parsed;
+    } catch (error) {
+        console.error(`getSubmission(${submissionId}) failed:`, error);
+        throw new Error(`Failed to fetch submission #${submissionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
         contractAddress: CONTRACT_ADDRESS,
         contractName: BOUNTY_CONTRACT,
         functionName: 'get-submission',
@@ -160,29 +184,43 @@ export async function getSubmission(submissionId: number, senderAddress: string)
 }
 
 export async function getTotalBounties(senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'get-total-bounties',
-        functionArgs: [],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-total-bounties',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalBounties');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalBounties failed:', error);
+        throw new Error(`Failed to fetch total bounties count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function getTotalSubmissions(senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'get-total-submissions',
-        functionArgs: [],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-total-submissions',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalSubmissions');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalSubmissions failed:', error);
+        throw new Error(`Failed to fetch total submissions count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function closeBounty(bountyId: number, senderAddress: string) {
@@ -231,61 +269,90 @@ export async function getResearcherProfile(
     researcher: string,
     senderAddress: string
 ) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'get-researcher-profile',
-        functionArgs: [principalCV(researcher)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'get-researcher-profile',
+            functionArgs: [principalCV(researcher)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getResearcherProfile');
+        return parsed;
+    } catch (error) {
+        console.error(`getResearcherProfile(${researcher}) failed:`, error);
+        throw new Error(`Failed to fetch researcher profile for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}    return cvToJSON(result);
 }
 
 export async function getReputationScore(
     researcher: string,
     senderAddress: string
 ) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'get-reputation-score',
-        functionArgs: [principalCV(researcher)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'get-reputation-score',
+            functionArgs: [principalCV(researcher)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getReputationScore');
+        return parsed;
+    } catch (error) {
+        console.error(`getReputationScore(${researcher}) failed:`, error);
+        throw new Error(`Failed to fetch reputation score for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function getTotalResearchers(senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'get-total-researchers',
-        functionArgs: [],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'get-total-researchers',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalResearchers');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalResearchers failed:', error);
+        throw new Error(`Failed to fetch total researchers count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function calculateSuccessRate(
     researcher: string,
     senderAddress: string
 ) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'calculate-success-rate',
-        functionArgs: [principalCV(researcher)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'calculate-success-rate',
+            functionArgs: [principalCV(researcher)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'calculateSuccessRate');
+        return parsed;
+    } catch (error) {
+        console.error(`calculateSuccessRate(${researcher}) failed:`, error);
+        throw new Error(`Failed to calculate success rate for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function registerArbiter(senderAddress: string) {
@@ -360,14 +427,60 @@ export async function voteOnDispute(
 }
 
 export async function getDispute(disputeId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: DISPUTE_CONTRACT,
-        functionName: 'get-dispute',
-        functionArgs: [uintCV(disputeId)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: DISPUTE_CONTRACT,
+            functionName: 'get-dispute',
+            functionArgs: [uintCV(disputeId)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getDispute');
+        return parsed;
+    } catch (error) {
+        console.error(`getDispute(${disputeId}) failed:`, error);
+        throw new Error(`Failed to fetch dispute #${disputeId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
+
+// Type guards and validation helpers
+function validateReadOnlyResponse(response: any, functionName: string): void {
+    if (!response) {
+        throw new Error(`${functionName} returned null or undefined`);
+    }
+    
+    if (response.error) {
+        throw new Error(`${functionName} returned error: ${JSON.stringify(response.error)}`);
+    }
+}
+
+function isValidClarityValue(value: any): boolean {
+    return value !== null && value !== undefined && typeof value === 'object';
+}
+
+function extractUintValue(cv: any, fieldName: string): number {
+    if (!cv?.value) {
+        throw new Error(`Missing or invalid ${fieldName} value`);
+    }
+    const num = typeof cv.value === 'string' ? parseInt(cv.value, 10) : cv.value;
+    if (isNaN(num)) {
+        throw new Error(`Invalid numeric value for ${fieldName}`);
+    }
+    return num;
+}
+
+function extractStringValue(cv: any, fieldName: string): string {
+    if (!cv?.value || typeof cv.value !== 'string') {
+        throw new Error(`Missing or invalid ${fieldName} value`);
+    }
+    return cv.value;
+}
+
+function extractBoolValue(cv: any, fieldName: string): boolean {
+    if (cv?.value === undefined || typeof cv.value !== 'boolean') {
+        throw new Error(`Missing or invalid ${fieldName} value`);
+    }
+    return cv.value;

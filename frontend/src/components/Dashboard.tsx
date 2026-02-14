@@ -10,6 +10,7 @@ import {
     getTotalSubmissions,
 } from '../utils/contractCalls';
 import type { ResearcherProfile, Submission, Bounty } from '../types';
+import '../styles/ErrorStates.css';
 
 interface DashboardStats {
     myBounties: Bounty[];
@@ -27,6 +28,7 @@ export function Dashboard() {
         successRate: 0,
     });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [registering, setRegistering] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'bounties' | 'submissions'>('overview');
 
@@ -38,6 +40,7 @@ export function Dashboard() {
 
     const loadDashboard = async () => {
         setLoading(true);
+        setError(null);
         try {
             // Load researcher profile
             let profile = null;
@@ -45,23 +48,32 @@ export function Dashboard() {
             
             try {
                 const profileResult = await getResearcherProfile(address, address);
-                if (profileResult.value) {
-                    profile = {
-                        researcher: address,
-                        totalSubmissions: profileResult.value['total-submissions'].value,
-                        acceptedSubmissions: profileResult.value['accepted-submissions'].value,
-                        rejectedSubmissions: profileResult.value['rejected-submissions'].value,
-                        totalEarned: profileResult.value['total-earned'].value / 1000000,
-                        reputationScore: profileResult.value['reputation-score'].value,
-                        joinedAt: profileResult.value['joined-at'].value,
-                        isVerified: profileResult.value['is-verified'].value,
-                    };
+                if (!profileResult?.value) {
+                    console.warn('getResearcherProfile returned unexpected format:', profileResult);
+                } else {
+                    const v = profileResult.value;
+                    // Validate required fields
+                    if (v['total-submissions']?.value !== undefined) {
+                        profile = {
+                            researcher: address,
+                            totalSubmissions: v['total-submissions'].value,
+                            acceptedSubmissions: v['accepted-submissions']?.value || 0,
+                            rejectedSubmissions: v['rejected-submissions']?.value || 0,
+                            totalEarned: (v['total-earned']?.value || 0) / 1000000,
+                            reputationScore: v['reputation-score']?.value || 0,
+                            joinedAt: v['joined-at']?.value || 0,
+                            isVerified: v['is-verified']?.value ?? false,
+                        };
 
-                    const rateResult = await calculateSuccessRate(address, address);
-                    successRate = rateResult.value?.value || 0;
+                        const rateResult = await calculateSuccessRate(address, address);
+                        if (rateResult?.value?.value !== undefined) {
+                            successRate = rateResult.value.value;
+                        }
+                    }
                 }
             } catch (err) {
-                console.log('User not registered as researcher');
+                console.warn('User not registered as researcher:', err);
+                // Not an error - user simply hasn't registered yet
             }
 
             // Fetch total counts in parallel
@@ -72,12 +84,20 @@ export function Dashboard() {
                     getTotalBounties(address),
                     getTotalSubmissions(address),
                 ]);
-                if (bountyCountResult.status === 'fulfilled') {
-                    totalBountyCount = bountyCountResult.value?.value?.value || 20;
+                if (bountyCountResult.status === 'fulfilled' && bountyCountResult.value?.value?.value) {
+                    totalBountyCount = bountyCountResult.value.value.value;
+                } else if (bountyCountResult.status === 'rejected') {
+                    console.error('Failed to get total bounties:', bountyCountResult.reason);
                 }
-                if (subCountResult.status === 'fulfilled') {
-                    totalSubCount = subCountResult.value?.value?.value || 50;
+                if (subCountResult.status === 'fulfilled' && subCountResult.value?.value?.value) {
+                    totalSubCount = subCountResult.value.value.value;
+                } else if (subCountResult.status === 'rejected') {
+                    console.error('Failed to get total submissions:', subCountResult.reason);
                 }
+            } catch (err) {
+                console.error('Could not get totals:', err);
+                setError('Failed to fetch data counts from blockchain. Using default values.');
+            }
             } catch (err) {
                 console.log('Could not get totals, using defaults');
             }
@@ -95,24 +115,35 @@ export function Dashboard() {
             const myBounties: Bounty[] = [];
             bountyResults.forEach((result, index) => {
                 if (result.status === 'fulfilled' && result.value?.value) {
-                    const v = result.value.value;
-                    if (v.project.value === address) {
-                        myBounties.push({
-                            id: bountyIds[index],
-                            project: v.project.value,
-                            title: v.title.value,
-                            description: v.description.value,
-                            totalPool: v['total-pool'].value / 1000000,
-                            remainingPool: v['remaining-pool'].value / 1000000,
-                            criticalReward: v['critical-reward'].value / 1000000,
-                            highReward: v['high-reward'].value / 1000000,
-                            mediumReward: v['medium-reward'].value / 1000000,
-                            lowReward: v['low-reward'].value / 1000000,
-                            expiresAt: v['expires-at'].value,
-                            createdAt: v['created-at'].value,
-                            isActive: v['is-active'].value,
-                        });
+                    try {
+                        const v = result.value.value;
+                        if (v.project?.value === address) {
+                            // Validate required fields
+                            if (!v.title?.value || !v['total-pool']?.value) {
+                                console.warn(`Bounty ${bountyIds[index]} missing required fields:`, v);
+                                return;
+                            }
+                            myBounties.push({
+                                id: bountyIds[index],
+                                project: v.project.value,
+                                title: v.title.value,
+                                description: v.description?.value || '',
+                                totalPool: v['total-pool'].value / 1000000,
+                                remainingPool: v['remaining-pool']?.value / 1000000 || 0,
+                                criticalReward: v['critical-reward']?.value / 1000000 || 0,
+                                highReward: v['high-reward']?.value / 1000000 || 0,
+                                mediumReward: v['medium-reward']?.value / 1000000 || 0,
+                                lowReward: v['low-reward']?.value / 1000000 || 0,
+                                expiresAt: v['expires-at']?.value || 0,
+                                createdAt: v['created-at']?.value || 0,
+                                isActive: v['is-active']?.value ?? false,
+                            });
+                        }
+                    } catch (parseErr) {
+                        console.error(`Failed to parse bounty ${bountyIds[index]}:`, parseErr);
                     }
+                } else if (result.status === 'rejected') {
+                    console.error(`Failed to fetch bounty ${bountyIds[index]}:`, result.reason);
                 }
             });
 
@@ -120,19 +151,30 @@ export function Dashboard() {
             const mySubmissions: Submission[] = [];
             subResults.forEach((result, index) => {
                 if (result.status === 'fulfilled' && result.value?.value) {
-                    const v = result.value.value;
-                    if (v.researcher.value === address) {
-                        mySubmissions.push({
-                            id: subIds[index],
-                            bountyId: v['bounty-id'].value,
-                            researcher: v.researcher.value,
-                            severity: v.severity.value,
-                            reportHash: v['report-hash'].value,
-                            submittedAt: v['submitted-at'].value,
-                            status: v.status.value,
-                            rewardAmount: v['reward-amount'].value / 1000000,
-                        });
+                    try {
+                        const v = result.value.value;
+                        if (v.researcher?.value === address) {
+                            // Validate required fields
+                            if (!v['bounty-id']?.value || !v.severity?.value) {
+                                console.warn(`Submission ${subIds[index]} missing required fields:`, v);
+                                return;
+                            }
+                            mySubmissions.push({
+                                id: subIds[index],
+                                bountyId: v['bounty-id'].value,
+                                researcher: v.researcher.value,
+                                severity: v.severity.value,
+                                reportHash: v['report-hash']?.value || '',
+                                submittedAt: v['submitted-at']?.value || 0,
+                                status: v.status?.value || 'pending',
+                                rewardAmount: (v['reward-amount']?.value || 0) / 1000000,
+                            });
+                        }
+                    } catch (parseErr) {
+                        console.error(`Failed to parse submission ${subIds[index]}:`, parseErr);
                     }
+                } else if (result.status === 'rejected') {
+                    console.error(`Failed to fetch submission ${subIds[index]}:`, result.reason);
                 }
             });
 
@@ -144,6 +186,8 @@ export function Dashboard() {
             });
         } catch (err) {
             console.error('Failed to load dashboard:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(`Failed to load dashboard data: ${errorMessage}. Please check your connection and try again.`);
         } finally {
             setLoading(false);
         }
@@ -184,6 +228,21 @@ export function Dashboard() {
         );
     }
 
+    if (error && !stats.profile && stats.myBounties.length === 0 && stats.mySubmissions.length === 0) {
+        return (
+            <div className="dashboard">
+                <div className="error-state">
+                    <div className="error-icon">⚠️</div>
+                    <h3>Failed to Load Dashboard</h3>
+                    <p>{error}</p>
+                    <button onClick={loadDashboard} className="retry-btn">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (!stats.profile) {
         return (
             <div className="dashboard">
@@ -204,6 +263,13 @@ export function Dashboard() {
 
     return (
         <div className="dashboard">
+            {error && (
+                <div className="warning-banner">
+                    <span className="warning-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button onClick={() => setError(null)} className="dismiss-btn">×</button>
+                </div>
+            )}
             <div className="dashboard-header">
                 <h1>My Dashboard</h1>
                 <button onClick={loadDashboard} className="refresh-btn">

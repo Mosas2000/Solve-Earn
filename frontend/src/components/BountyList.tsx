@@ -3,11 +3,13 @@ import { useStacks } from '../hooks/useStacks';
 import { getBounty, getTotalBounties } from '../utils/contractCalls';
 import { SubmitVulnerability } from './SubmitVulnerability';
 import type { Bounty } from '../types';
+import '../styles/ErrorStates.css';
 
 export function BountyList() {
     const { address, isConnected } = useStacks();
     const [bounties, setBounties] = useState<Bounty[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [selectedBounty, setSelectedBounty] = useState<number | null>(null);
     const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('active');
 
@@ -19,14 +21,20 @@ export function BountyList() {
 
     const loadBounties = async () => {
         setLoading(true);
+        setError(null);
         try {
             // Get total bounties count
             let totalBounties = 10;
             try {
                 const totalResult = await getTotalBounties(address);
-                totalBounties = totalResult.value?.value || 10;
+                if (!totalResult?.value?.value) {
+                    console.warn('getTotalBounties returned unexpected format:', totalResult);
+                    throw new Error('Invalid response format from getTotalBounties');
+                }
+                totalBounties = totalResult.value.value;
             } catch (err) {
-                console.log('Could not get total bounties, using default');
+                console.error('Failed to get total bounties count:', err);
+                setError('Failed to fetch bounty count from blockchain. Using default value.');
             }
 
             const count = Math.min(totalBounties, 50);
@@ -40,28 +48,45 @@ export function BountyList() {
             const bountyData: Bounty[] = [];
             results.forEach((result, index) => {
                 if (result.status === 'fulfilled' && result.value?.value) {
-                    const v = result.value.value;
-                    bountyData.push({
-                        id: ids[index],
-                        project: v.project.value,
-                        title: v.title.value,
-                        description: v.description.value,
-                        totalPool: v['total-pool'].value / 1000000,
-                        remainingPool: v['remaining-pool'].value / 1000000,
-                        criticalReward: v['critical-reward'].value / 1000000,
-                        highReward: v['high-reward'].value / 1000000,
-                        mediumReward: v['medium-reward'].value / 1000000,
-                        lowReward: v['low-reward'].value / 1000000,
-                        expiresAt: v['expires-at'].value,
-                        createdAt: v['created-at'].value,
-                        isActive: v['is-active'].value,
-                    });
+                    try {
+                        const v = result.value.value;
+                        // Validate required fields exist
+                        if (!v.project?.value || !v.title?.value || !v['total-pool']?.value) {
+                            console.warn(`Bounty ${ids[index]} missing required fields:`, v);
+                            return;
+                        }
+                        bountyData.push({
+                            id: ids[index],
+                            project: v.project.value,
+                            title: v.title.value,
+                            description: v.description?.value || '',
+                            totalPool: v['total-pool'].value / 1000000,
+                            remainingPool: v['remaining-pool']?.value / 1000000 || 0,
+                            criticalReward: v['critical-reward']?.value / 1000000 || 0,
+                            highReward: v['high-reward']?.value / 1000000 || 0,
+                            mediumReward: v['medium-reward']?.value / 1000000 || 0,
+                            lowReward: v['low-reward']?.value / 1000000 || 0,
+                            expiresAt: v['expires-at']?.value || 0,
+                            createdAt: v['created-at']?.value || 0,
+                            isActive: v['is-active']?.value ?? false,
+                        });
+                    } catch (parseErr) {
+                        console.error(`Failed to parse bounty ${ids[index]}:`, parseErr, result.value);
+                    }
+                } else if (result.status === 'rejected') {
+                    console.error(`Failed to fetch bounty ${ids[index]}:`, result.reason);
                 }
             });
+
+            if (bountyData.length === 0 && results.length > 0) {
+                setError('Unable to load bounty data. The contract may not be deployed or the network may be unavailable.');
+            }
 
             setBounties(bountyData);
         } catch (error) {
             console.error('Failed to load bounties:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            setError(`Failed to load bounties: ${errorMessage}. Please check your connection and try again.`);
         } finally {
             setLoading(false);
         }
@@ -92,11 +117,34 @@ export function BountyList() {
         return <div className="loading">Loading bounties...</div>;
     }
 
+    if (error && bounties.length === 0) {
+        return (
+            <div className="bounty-list">
+                <div className="header">
+                    <h2>Bug Bounty Programs</h2>
+                </div>
+                <div className="error-state">
+                    <div className="error-icon">⚠️</div>
+                    <h3>Failed to Load Bounties</h3>
+                    <p>{error}</p>
+                    <button onClick={loadBounties} className="retry-btn">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="bounty-list">
             <div className="header">
                 <h2>Bug Bounty Programs</h2>
-                <div className="header-actions">
+                <div className="header-actions">{error && bounties.length > 0 && (
+                        <div className="warning-banner">
+                            <span className="warning-icon">⚠️</span>
+                            <span>{error}</span>
+                        </div>
+                    )}
                     <div className="filter-buttons">
                         <button
                             className={filter === 'all' ? 'active' : ''}
