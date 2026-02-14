@@ -48,6 +48,22 @@ export interface Dispute {
     resolvedAt?: number;
 }
 
+export interface VulnerabilityReport {
+    severity: SeverityLevel;
+    description: string;
+    proofOfConcept: string;
+    impact: string;
+    recommendation: string;
+}
+
+export interface StoredReport extends VulnerabilityReport {
+    reportHash: string;
+    researcher: string;
+    bountyId: number;
+    submittedAt: number;
+    encrypted: boolean;
+}
+
 export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low';
 
 export interface CreateBountyForm {
