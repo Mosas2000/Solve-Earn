@@ -182,4 +182,73 @@ Clarinet.test({
     }
 });
 
+Clarinet.test({
+    name: "Prevents non-arbiter from voting on disputes",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const user = accounts.get('wallet_1')!;
+        const nonArbiter = accounts.get('wallet_2')!;
+
+        // Create dispute
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'create-dispute',
+                [
+                    types.uint(1),
+                    types.utf8("Testing non-arbiter vote prevention")
+                ],
+                user.address
+            )
+        ]);
+
+        // Non-arbiter tries to vote - should fail with err u303
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'vote-on-dispute',
+                [
+                    types.uint(1),
+                    types.bool(true)
+                ],
+                nonArbiter.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(303);
+    }
+});
+
+Clarinet.test({
+    name: "Returns error for non-existent dispute",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const arbiter = accounts.get('wallet_1')!;
+
+        // Register arbiter
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'register-arbiter',
+                [],
+                arbiter.address
+            )
+        ]);
+
+        // Try to vote on non-existent dispute - should fail with err u301
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'vote-on-dispute',
+                [
+                    types.uint(999),
+                    types.bool(true)
+                ],
+                arbiter.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(301);
+    }
+});
+
+
 
