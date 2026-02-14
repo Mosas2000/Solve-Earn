@@ -4,6 +4,7 @@ import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotal
 import { getReport } from '../utils/reportStorage';
 import type { Submission, StoredReport } from '../types';
 import '../styles/ErrorStates.css';
+import '../styles/ReportDisplay.css';
 
 interface SubmissionWithBounty extends Submission {
     bountyTitle?: string;
