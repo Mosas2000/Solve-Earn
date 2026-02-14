@@ -513,3 +513,51 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(200);
     }
 });
+
+Clarinet.test({
+    name: "Prevents submission to expired bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Create bounty with very short duration (10 blocks)
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Expiry Test Bounty"),
+                    types.utf8("Testing expiration validation"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(10)  // Very short duration
+                ],
+                project.address
+            )
+        ]);
+
+        // Mine blocks to pass expiration
+        for (let i = 0; i < 12; i++) {
+            chain.mineEmptyBlock();
+        }
+
+        // Try to submit after expiration - should fail with err u203
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(13))
+                ],
+                researcher.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(203);
+    }
+});
