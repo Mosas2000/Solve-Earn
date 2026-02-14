@@ -561,3 +561,81 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(203);
     }
 });
+
+Clarinet.test({
+    name: "Prevents approval when remaining pool is insufficient",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher1 = accounts.get('wallet_2')!;
+        const researcher2 = accounts.get('wallet_3')!;
+
+        // Create bounty with minimal pool (just enough for one critical reward)
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Limited Pool Bounty"),
+                    types.utf8("Testing pool depletion"),
+                    types.uint(2000000),  // Only enough for one critical
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // First researcher submits critical vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(new Uint8Array(32).fill(14))
+                ],
+                researcher1.address
+            )
+        ]);
+
+        // Approve first submission (depletes pool)
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        // Second researcher submits
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(15))
+                ],
+                researcher2.address
+            )
+        ]);
+
+        // Try to approve second when pool is depleted - should fail with err u202
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(2)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(202);
+    }
+});
