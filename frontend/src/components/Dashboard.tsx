@@ -6,6 +6,8 @@ import {
     registerResearcher,
     getBounty,
     getSubmission,
+    getTotalBounties,
+    getTotalSubmissions,
 } from '../utils/contractCalls';
 import type { ResearcherProfile, Submission, Bounty } from '../types';
 
@@ -64,7 +66,15 @@ export function Dashboard() {
 
             // Load user's bounties
             const myBounties: Bounty[] = [];
-            for (let i = 1; i <= 20; i++) {
+            let totalBountyCount = 20;
+            try {
+                const totalResult = await getTotalBounties(address);
+                totalBountyCount = totalResult.value?.value || 20;
+            } catch (err) {
+                console.log('Could not get total bounties, using default');
+            }
+
+            for (let i = 1; i <= totalBountyCount; i++) {
                 try {
                     const result = await getBounty(i, address);
                     if (result.value && result.value.project.value === address) {
@@ -91,7 +101,15 @@ export function Dashboard() {
 
             // Load user's submissions
             const mySubmissions: Submission[] = [];
-            for (let i = 1; i <= 50; i++) {
+            let totalSubCount = 50;
+            try {
+                const subResult = await getTotalSubmissions(address);
+                totalSubCount = subResult.value?.value || 50;
+            } catch (err) {
+                console.log('Could not get total submissions, using default');
+            }
+
+            for (let i = 1; i <= totalSubCount; i++) {
                 try {
                     const result = await getSubmission(i, address);
                     if (result.value && result.value.researcher.value === address) {

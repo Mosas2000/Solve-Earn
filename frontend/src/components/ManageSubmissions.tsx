@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
-import { getSubmission, approveSubmission, rejectSubmission, getBounty } from '../utils/contractCalls';
+import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '../utils/contractCalls';
 import type { Submission } from '../types';
 
 interface SubmissionWithBounty extends Submission {
@@ -26,8 +26,16 @@ export function ManageSubmissions() {
         try {
             const submissionData: SubmissionWithBounty[] = [];
             
-            // Load submissions (checking first 50)
-            for (let i = 1; i <= 50; i++) {
+            // Get actual submission count from contract
+            let totalSubs = 50;
+            try {
+                const totalResult = await getTotalSubmissions(address);
+                totalSubs = totalResult.value?.value || 50;
+            } catch (err) {
+                console.log('Could not get total submissions, using default');
+            }
+
+            for (let i = 1; i <= totalSubs; i++) {
                 try {
                     const result = await getSubmission(i, address);
                     if (result.value) {

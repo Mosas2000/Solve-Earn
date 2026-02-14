@@ -172,6 +172,19 @@ export async function getTotalBounties(senderAddress: string) {
     return cvToJSON(result);
 }
 
+export async function getTotalSubmissions(senderAddress: string) {
+    const result = await callReadOnlyFunction({
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: BOUNTY_CONTRACT,
+        functionName: 'get-total-submissions',
+        functionArgs: [],
+        network,
+        senderAddress,
+    });
+
+    return cvToJSON(result);
+}
+
 export async function closeBounty(bountyId: number, senderAddress: string) {
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
