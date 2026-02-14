@@ -1,0 +1,86 @@
+/* Error State Styles */
+.error-state {
+    text-align: center;
+    padding: 60px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.error-state .error-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.error-state h3 {
+    color: #dc3545;
+    margin-bottom: 16px;
+    font-size: 24px;
+}
+
+.error-state p {
+    color: #6c757d;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.error-state .retry-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.error-state .retry-btn:hover {
+    background-color: #0056b3;
+}
+
+.error-state .retry-btn:active {
+    transform: translateY(1px);
+}
+
+/* Warning Banner Styles */
+.warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    color: #856404;
+}
+
+.warning-banner .warning-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.warning-banner .dismiss-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #856404;
+    padding: 0 8px;
+    line-height: 1;
+}
+
+.warning-banner .dismiss-btn:hover {
+    color: #533f03;
+}
+
+/* Error Message (for forms/actions) */
+.error-message {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: #721c24;
+}
