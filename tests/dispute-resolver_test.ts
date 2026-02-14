@@ -123,3 +123,63 @@ Clarinet.test({
     }
 });
 
+Clarinet.test({
+    name: "Prevents duplicate voting by same arbiter",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const user = accounts.get('wallet_1')!;
+        const arbiter = accounts.get('wallet_2')!;
+
+        // Register arbiter
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'register-arbiter',
+                [],
+                arbiter.address
+            )
+        ]);
+
+        // Create dispute
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'create-dispute',
+                [
+                    types.uint(1),
+                    types.utf8("Testing duplicate vote prevention")
+                ],
+                user.address
+            )
+        ]);
+
+        // First vote should succeed
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'vote-on-dispute',
+                [
+                    types.uint(1),
+                    types.bool(true)
+                ],
+                arbiter.address
+            )
+        ]);
+
+        // Second vote should fail with err u302
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'vote-on-dispute',
+                [
+                    types.uint(1),
+                    types.bool(false)
+                ],
+                arbiter.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(302);
+    }
+});
+
+
