@@ -11,6 +11,7 @@ export function Leaderboard() {
     const { address, isConnected } = useStacks();
     const [researchers, setResearchers] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState<'reputation' | 'earnings' | 'submissions'>('reputation');
 
     useEffect(() => {
@@ -21,9 +22,14 @@ export function Leaderboard() {
 
     const loadLeaderboard = async () => {
         setLoading(true);
+        setError(null);
         try {
             // Get total researchers count
-            await getTotalResearchers(address);
+            try {
+                await getTotalResearchers(address);
+            } catch (err) {
+                console.warn('Failed to get total researchers:', err);
+            }
 
             // For demo purposes, we'll load a sample of researchers
             // In production, you'd want to implement pagination or load from a backend
@@ -35,27 +41,40 @@ export function Leaderboard() {
             // Fetch all researcher profiles and success rates in parallel
             const results = await Promise.allSettled(
                 sampleAddresses.map(async (researcherAddress) => {
-                    const [profileResult, successRateResult] = await Promise.all([
-                        getResearcherProfile(researcherAddress, address),
-                        calculateSuccessRate(researcherAddress, address),
-                    ]);
+                    try {
+                        const [profileResult, successRateResult] = await Promise.all([
+                            getResearcherProfile(researcherAddress, address),
+                            calculateSuccessRate(researcherAddress, address),
+                        ]);
 
-                    if (!profileResult.value) {
+                        if (!profileResult?.value) {
+                            console.warn(`getResearcherProfile returned unexpected format for ${researcherAddress}:`, profileResult);
+                            return null;
+                        }
+
+                        const v = profileResult.value;
+                        // Validate required fields
+                        if (v['total-submissions']?.value === undefined) {
+                            console.warn(`Profile for ${researcherAddress} missing required fields:`, v);
+                            return null;
+                        }
+
+                        const successRate = successRateResult?.value?.value ?? 0;
+                        return {
+                            researcher: researcherAddress,
+                            totalSubmissions: v['total-submissions'].value,
+                            acceptedSubmissions: v['accepted-submissions']?.value || 0,
+                            rejectedSubmissions: v['rejected-submissions']?.value || 0,
+                            totalEarned: (v['total-earned']?.value || 0) / 1000000,
+                            reputationScore: v['reputation-score']?.value || 0,
+                            joinedAt: v['joined-at']?.value || 0,
+                            isVerified: v['is-verified']?.value ?? false,
+                            successRate: successRate,
+                        } as LeaderboardEntry;
+                    } catch (parseErr) {
+                        console.error(`Failed to load profile for ${researcherAddress}:`, parseErr);
                         return null;
                     }
-
-                    const successRate = successRateResult.value?.value || 0;
-                    return {
-                        researcher: researcherAddress,
-                        totalSubmissions: profileResult.value['total-submissions'].value,
-                        acceptedSubmissions: profileResult.value['accepted-submissions'].value,
-                        rejectedSubmissions: profileResult.value['rejected-submissions'].value,
-                        totalEarned: profileResult.value['total-earned'].value / 1000000,
-                        reputationScore: profileResult.value['reputation-score'].value,
-                        joinedAt: profileResult.value['joined-at'].value,
-                        isVerified: profileResult.value['is-verified'].value,
-                        successRate: successRate,
-                    } as LeaderboardEntry;
                 })
             );
 
@@ -63,11 +82,24 @@ export function Leaderboard() {
             results.forEach((result) => {
                 if (result.status === 'fulfilled' && result.value !== null) {
                     leaderboardData.push(result.value);
+                } else if (result.status === 'rejected') {
+                    console.error('Failed to fetch researcher data:', result.reason);
                 }
             });
 
+            if (leaderboardData.length === 0 && sampleAddresses.length > 0) {
+                setError('Unable to load researcher profiles. They may not be registered yet.');
+            }
+
             setResearchers(leaderboardData);
         } catch (err) {
+            console.error('Failed to load leaderboard:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(`Failed to load leaderboard: ${errorMessage}`);
+        } finally {
+            setLoading(false);
+        }
+    };
             console.error('Failed to load leaderboard:', err);
         } finally {
             setLoading(false);
@@ -112,8 +144,32 @@ export function Leaderboard() {
         );
     }
 
+    if (error && researchers.length === 0) {
+        return (
+            <div className="leaderboard">
+                <div className="header">
+                    <h2>Security Researcher Leaderboard</h2>
+                </div>
+                <div className="error-state">
+                    <div className="error-icon">⚠️</div>
+                    <h3>Failed to Load Leaderboard</h3>
+                    <p>{error}</p>
+                    <button onClick={loadLeaderboard} className="retry-btn">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="leaderboard">
+            {error && researchers.length > 0 && (
+                <div className="warning-banner">
+                    <span className="warning-icon">⚠️</span>
+                    <span>{error}</span>
+                </div>
+            )}
             <div className="header">
                 <h2>Security Researcher Leaderboard</h2>
                 <div className="sort-controls">
