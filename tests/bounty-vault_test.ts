@@ -420,3 +420,42 @@ Clarinet.test({
         block.receipts[0].result.expectOk().expectBool(true);
     }
 });
+
+Clarinet.test({
+    name: "Prevents unauthorized user from closing bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const unauthorized = accounts.get('wallet_3')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Unauthorized Close Test"),
+                    types.utf8("Testing unauthorized closure attempt"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Unauthorized user tries to close - should fail with err u200
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'close-bounty',
+                [types.uint(1)],
+                unauthorized.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(200);
+    }
+});
