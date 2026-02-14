@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
 import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '../utils/contractCalls';
 import type { Submission } from '../types';
+import '../styles/ErrorStates.css';
 
 interface SubmissionWithBounty extends Submission {
     bountyTitle?: string;

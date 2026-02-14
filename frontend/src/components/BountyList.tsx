@@ -3,6 +3,7 @@ import { useStacks } from '../hooks/useStacks';
 import { getBounty, getTotalBounties } from '../utils/contractCalls';
 import { SubmitVulnerability } from './SubmitVulnerability';
 import type { Bounty } from '../types';
+import '../styles/ErrorStates.css';
 
 export function BountyList() {
     const { address, isConnected } = useStacks();

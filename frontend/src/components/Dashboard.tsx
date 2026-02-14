@@ -10,6 +10,7 @@ import {
     getTotalSubmissions,
 } from '../utils/contractCalls';
 import type { ResearcherProfile, Submission, Bounty } from '../types';
+import '../styles/ErrorStates.css';
 
 interface DashboardStats {
     myBounties: Bounty[];

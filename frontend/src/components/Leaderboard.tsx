@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
 import { getTotalResearchers, getResearcherProfile, calculateSuccessRate } from '../utils/contractCalls';
 import type { ResearcherProfile } from '../types';
+import '../styles/ErrorStates.css';
 
 interface LeaderboardEntry extends ResearcherProfile {
     successRate: number;
