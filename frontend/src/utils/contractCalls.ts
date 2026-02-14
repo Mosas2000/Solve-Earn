@@ -360,14 +360,60 @@ export async function voteOnDispute(
 }
 
 export async function getDispute(disputeId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: DISPUTE_CONTRACT,
-        functionName: 'get-dispute',
-        functionArgs: [uintCV(disputeId)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: DISPUTE_CONTRACT,
+            functionName: 'get-dispute',
+            functionArgs: [uintCV(disputeId)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getDispute');
+        return parsed;
+    } catch (error) {
+        console.error(`getDispute(${disputeId}) failed:`, error);
+        throw new Error(`Failed to fetch dispute #${disputeId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
+
+// Type guards and validation helpers
+function validateReadOnlyResponse(response: any, functionName: string): void {
+    if (!response) {
+        throw new Error(`${functionName} returned null or undefined`);
+    }
+    
+    if (response.error) {
+        throw new Error(`${functionName} returned error: ${JSON.stringify(response.error)}`);
+    }
+}
+
+function isValidClarityValue(value: any): boolean {
+    return value !== null && value !== undefined && typeof value === 'object';
+}
+
+function extractUintValue(cv: any, fieldName: string): number {
+    if (!cv?.value) {
+        throw new Error(`Missing or invalid ${fieldName} value`);
+    }
+    const num = typeof cv.value === 'string' ? parseInt(cv.value, 10) : cv.value;
+    if (isNaN(num)) {
+        throw new Error(`Invalid numeric value for ${fieldName}`);
+    }
+    return num;
+}
+
+function extractStringValue(cv: any, fieldName: string): string {
+    if (!cv?.value || typeof cv.value !== 'string') {
+        throw new Error(`Missing or invalid ${fieldName} value`);
+    }
+    return cv.value;
+}
+
+function extractBoolValue(cv: any, fieldName: string): boolean {
+    if (cv?.value === undefined || typeof cv.value !== 'boolean') {
+        throw new Error(`Missing or invalid ${fieldName} value`);
+    }
+    return cv.value;
