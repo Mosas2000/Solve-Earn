@@ -118,3 +118,160 @@ Clarinet.test({
         block.receipts[0].result.expectOk().expectBool(true);
     }
 });
+
+Clarinet.test({
+    name: "Rejects duplicate report hash on the same bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+        const reportHash = new Uint8Array(32).fill(9);
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Duplicate Hash Test"),
+                    types.utf8("Test duplicate hash rejection"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // First submission should succeed
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(reportHash)
+                ],
+                researcher.address
+            )
+        ]);
+        block.receipts[0].result.expectOk();
+
+        // Second submission with same hash should fail with err u205
+        block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("medium"),
+                    types.buff(reportHash)
+                ],
+                researcher.address
+            )
+        ]);
+        block.receipts[0].result.expectErr().expectUint(205);
+    }
+});
+
+Clarinet.test({
+    name: "Rejects researcher after reaching max submissions per bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Max Submissions Test"),
+                    types.utf8("Test per-researcher submission cap"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Submit 3 different reports (the max)
+        for (let i = 1; i <= 3; i++) {
+            const hash = new Uint8Array(32).fill(i);
+            let block = chain.mineBlock([
+                Tx.contractCall(
+                    'bounty-vault',
+                    'submit-vulnerability',
+                    [
+                        types.uint(1),
+                        types.ascii("low"),
+                        types.buff(hash)
+                    ],
+                    researcher.address
+                )
+            ]);
+            block.receipts[0].result.expectOk();
+        }
+
+        // 4th submission should fail with err u206
+        const hash4 = new Uint8Array(32).fill(4);
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(hash4)
+                ],
+                researcher.address
+            )
+        ]);
+        block.receipts[0].result.expectErr().expectUint(206);
+    }
+});
+
+Clarinet.test({
+    name: "Rejects bounty owner from submitting to their own bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Self-Submit Test"),
+                    types.utf8("Test self-submission prevention"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Owner submitting to their own bounty should fail with err u207
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(new Uint8Array(32).fill(99))
+                ],
+                project.address
+            )
+        ]);
+        block.receipts[0].result.expectErr().expectUint(207);
+    }
+});
