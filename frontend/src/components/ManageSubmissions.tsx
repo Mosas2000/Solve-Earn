@@ -16,6 +16,7 @@ export function ManageSubmissions() {
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [error, setError] = useState('');
+    const [expandedSubmission, setExpandedSubmission] = useState<number | null>(null);
 
     useEffect(() => {
         if (isConnected) {
@@ -183,6 +184,10 @@ export function ManageSubmissions() {
         return `status-${status.toLowerCase()}`;
     };
 
+    const toggleExpanded = (submissionId: number) => {
+        setExpandedSubmission(expandedSubmission === submissionId ? null : submissionId);
+    };
+
     if (!isConnected) {
         return (
             <div className="manage-submissions">
@@ -279,6 +284,52 @@ export function ManageSubmissions() {
                                     <span className="value">Block #{submission.submittedAt}</span>
                                 </div>
                             </div>
+
+                            {submission.reportContent ? (
+                                <div className="report-section">
+                                    <button 
+                                        className="view-report-btn"
+                                        onClick={() => toggleExpanded(submission.id)}
+                                    >
+                                        {expandedSubmission === submission.id ? '▼ Hide Report' : '▶ View Full Report'}
+                                    </button>
+                                    
+                                    {expandedSubmission === submission.id && (
+                                        <div className="report-content">
+                                            <div className="report-field">
+                                                <h4>Description</h4>
+                                                <p>{submission.reportContent.description || 'No description provided'}</p>
+                                            </div>
+                                            
+                                            {submission.reportContent.proofOfConcept && (
+                                                <div className="report-field">
+                                                    <h4>Proof of Concept</h4>
+                                                    <pre>{submission.reportContent.proofOfConcept}</pre>
+                                                </div>
+                                            )}
+                                            
+                                            {submission.reportContent.impact && (
+                                                <div className="report-field">
+                                                    <h4>Impact Assessment</h4>
+                                                    <p>{submission.reportContent.impact}</p>
+                                                </div>
+                                            )}
+                                            
+                                            {submission.reportContent.recommendation && (
+                                                <div className="report-field">
+                                                    <h4>Recommended Fix</h4>
+                                                    <p>{submission.reportContent.recommendation}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="report-unavailable">
+                                    <p>⚠️ Report content not available off-chain</p>
+                                    <small>Only the hash is stored on the blockchain</small>
+                                </div>
+                            )}
 
                             {submission.status === 'pending' && (
                                 <div className="submission-actions">
