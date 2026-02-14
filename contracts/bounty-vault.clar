@@ -5,6 +5,10 @@
 (define-constant err-insufficient-funds (err u202))
 (define-constant err-bounty-expired (err u203))
 (define-constant err-invalid-severity (err u204))
+(define-constant err-duplicate-hash (err u205))
+(define-constant err-max-submissions-reached (err u206))
+(define-constant err-self-submission (err u207))
+(define-constant MAX-SUBMISSIONS-PER-RESEARCHER u3)
 
 (define-data-var bounty-nonce uint u0)
 (define-data-var submission-nonce uint u0)
@@ -38,6 +42,18 @@
         status: (string-ascii 8),
         reward-amount: uint
     }
+)
+
+;; Tracks how many submissions a researcher has made to a specific bounty
+(define-map researcher-submission-count
+    { bounty-id: uint, researcher: principal }
+    { count: uint }
+)
+
+;; Tracks whether a specific report hash has already been submitted to a bounty
+(define-map submitted-hashes
+    { bounty-id: uint, report-hash: (buff 32) }
+    { submission-id: uint }
 )
 
 (define-public (create-bounty
@@ -89,10 +105,19 @@
             (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
             (submission-id (+ (var-get submission-nonce) u1))
             (reward (get-reward-by-severity bounty severity))
+            (current-count (default-to { count: u0 }
+                (map-get? researcher-submission-count { bounty-id: bounty-id, researcher: tx-sender })))
         )
         (asserts! (get is-active bounty) err-bounty-expired)
         (asserts! (< block-height (get expires-at bounty)) err-bounty-expired)
         (asserts! (> reward u0) err-invalid-severity)
+        ;; Prevent bounty owner from submitting to their own bounty
+        (asserts! (not (is-eq tx-sender (get project bounty))) err-self-submission)
+        ;; Prevent duplicate report hashes on the same bounty
+        (asserts! (is-none (map-get? submitted-hashes { bounty-id: bounty-id, report-hash: report-hash })) err-duplicate-hash)
+        ;; Limit submissions per researcher per bounty
+        (asserts! (< (get count current-count) MAX-SUBMISSIONS-PER-RESEARCHER) err-max-submissions-reached)
+        ;; Record the submission
         (map-set submissions
             { submission-id: submission-id }
             {
@@ -104,6 +129,16 @@
                 status: "pending",
                 reward-amount: reward
             }
+        )
+        ;; Track the hash to prevent duplicates
+        (map-set submitted-hashes
+            { bounty-id: bounty-id, report-hash: report-hash }
+            { submission-id: submission-id }
+        )
+        ;; Increment the per-researcher submission count
+        (map-set researcher-submission-count
+            { bounty-id: bounty-id, researcher: tx-sender }
+            { count: (+ (get count current-count) u1) }
         )
         (var-set submission-nonce submission-id)
         (ok submission-id)
