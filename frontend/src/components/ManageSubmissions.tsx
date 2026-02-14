@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
 import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '../utils/contractCalls';
 import { getReport } from '../utils/reportStorage';
+import { useToast } from './ToastProvider';
 import type { Submission, StoredReport } from '../types';
 import '../styles/ErrorStates.css';
 import '../styles/ReportDisplay.css';
@@ -13,6 +14,7 @@ interface SubmissionWithBounty extends Submission {
 
 export function ManageSubmissions() {
     const { address, isConnected } = useStacks();
+    const { showToast } = useToast();
     const [submissions, setSubmissions] = useState<SubmissionWithBounty[]>([]);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -143,35 +145,59 @@ export function ManageSubmissions() {
         setActionLoading(submissionId);
         setError('');
         try {
-            const txid = await approveSubmission(submissionId, address);
-            console.log('Submission approved! TxID:', txid);
+            const txId = await approveSubmission(
+                submissionId,
+                address,
+                () => {
+                    // Success callback - transaction confirmed
+                    showToast('Submission approved successfully!', 'success');
+                    loadSubmissions();
+                },
+                (error: string) => {
+                    // Error callback - transaction failed
+                    showToast(`Failed to approve submission: ${error}`, 'error');
+                }
+            );
             
-            // Refresh submissions after a short delay
-            setTimeout(() => {
-                loadSubmissions();
-            }, 3000);
+            // Transaction broadcast
+            showToast('Transaction broadcast! Waiting for confirmation...', 'info');
+            console.log('Submission approved! TxID:', txId);
         } catch (err) {
             console.error('Failed to approve submission:', err);
-            setError(err instanceof Error ? err.message : 'Failed to approve submission');
+            const errorMsg = err instanceof Error ? err.message : 'Failed to approve submission';
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setActionLoading(null);
         }
     };
 
-    const handleReject = async (submissionId: number) => {
+    const handleReject = async (submissionId: number) {
         setActionLoading(submissionId);
         setError('');
         try {
-            const txid = await rejectSubmission(submissionId, address);
-            console.log('Submission rejected! TxID:', txid);
+            const txId = await rejectSubmission(
+                submissionId,
+                address,
+                () => {
+                    // Success callback - transaction confirmed
+                    showToast('Submission rejected successfully!', 'success');
+                    loadSubmissions();
+                },
+                (error: string) => {
+                    // Error callback - transaction failed
+                    showToast(`Failed to reject submission: ${error}`, 'error');
+                }
+            );
             
-            // Refresh submissions after a short delay
-            setTimeout(() => {
-                loadSubmissions();
-            }, 3000);
+            // Transaction broadcast
+            showToast('Transaction broadcast! Waiting for confirmation...', 'info');
+            console.log('Submission rejected! TxID:', txId);
         } catch (err) {
             console.error('Failed to reject submission:', err);
-            setError(err instanceof Error ? err.message : 'Failed to reject submission');
+            const errorMsg = err instanceof Error ? err.message : 'Failed to reject submission';
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setActionLoading(null);
         }
