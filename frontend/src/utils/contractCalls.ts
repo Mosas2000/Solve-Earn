@@ -269,61 +269,90 @@ export async function getResearcherProfile(
     researcher: string,
     senderAddress: string
 ) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'get-researcher-profile',
-        functionArgs: [principalCV(researcher)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'get-researcher-profile',
+            functionArgs: [principalCV(researcher)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getResearcherProfile');
+        return parsed;
+    } catch (error) {
+        console.error(`getResearcherProfile(${researcher}) failed:`, error);
+        throw new Error(`Failed to fetch researcher profile for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}    return cvToJSON(result);
 }
 
 export async function getReputationScore(
     researcher: string,
     senderAddress: string
 ) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'get-reputation-score',
-        functionArgs: [principalCV(researcher)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'get-reputation-score',
+            functionArgs: [principalCV(researcher)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getReputationScore');
+        return parsed;
+    } catch (error) {
+        console.error(`getReputationScore(${researcher}) failed:`, error);
+        throw new Error(`Failed to fetch reputation score for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function getTotalResearchers(senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'get-total-researchers',
-        functionArgs: [],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'get-total-researchers',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalResearchers');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalResearchers failed:', error);
+        throw new Error(`Failed to fetch total researchers count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function calculateSuccessRate(
     researcher: string,
     senderAddress: string
 ) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'calculate-success-rate',
-        functionArgs: [principalCV(researcher)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'calculate-success-rate',
+            functionArgs: [principalCV(researcher)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'calculateSuccessRate');
+        return parsed;
+    } catch (error) {
+        console.error(`calculateSuccessRate(${researcher}) failed:`, error);
+        throw new Error(`Failed to calculate success rate for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function registerArbiter(senderAddress: string) {
