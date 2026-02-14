@@ -24,8 +24,6 @@ export function ManageSubmissions() {
         setLoading(true);
         setError('');
         try {
-            const submissionData: SubmissionWithBounty[] = [];
-            
             // Get actual submission count from contract
             let totalSubs = 50;
             try {
@@ -35,34 +33,57 @@ export function ManageSubmissions() {
                 console.log('Could not get total submissions, using default');
             }
 
-            for (let i = 1; i <= totalSubs; i++) {
-                try {
-                    const result = await getSubmission(i, address);
-                    if (result.value) {
-                        const bountyId = result.value['bounty-id'].value;
-                        
-                        // Get bounty details to check ownership
-                        const bountyResult = await getBounty(bountyId, address);
-                        if (bountyResult.value && bountyResult.value.project.value === address) {
-                            submissionData.push({
-                                id: i,
-                                bountyId: bountyId,
-                                researcher: result.value.researcher.value,
-                                severity: result.value.severity.value,
-                                reportHash: result.value['report-hash'].value,
-                                submittedAt: result.value['submitted-at'].value,
-                                status: result.value.status.value,
-                                rewardAmount: result.value['reward-amount'].value / 1000000,
-                                bountyTitle: bountyResult.value.title.value,
-                            });
-                        }
-                    }
-                } catch (err) {
-                    // Submission doesn't exist, continue
-                    break;
+            // Fetch all submissions in parallel
+            const subIds = Array.from({ length: totalSubs }, (_, i) => i + 1);
+            const subResults = await Promise.allSettled(
+                subIds.map((id) => getSubmission(id, address))
+            );
+
+            // Collect valid submissions with their bounty IDs for the second pass
+            const validSubs: { index: number; bountyId: number; value: any }[] = [];
+            subResults.forEach((result, i) => {
+                if (result.status === 'fulfilled' && result.value?.value) {
+                    validSubs.push({
+                        index: subIds[i],
+                        bountyId: result.value.value['bounty-id'].value,
+                        value: result.value.value,
+                    });
+                }
+            });
+
+            // Deduplicate bounty IDs so each bounty is fetched only once
+            const uniqueBountyIds = [...new Set(validSubs.map((s) => s.bountyId))];
+            const bountyResults = await Promise.allSettled(
+                uniqueBountyIds.map((id) => getBounty(id, address))
+            );
+
+            // Build a lookup map from bountyId to bounty data
+            const bountyMap = new Map<number, any>();
+            bountyResults.forEach((result, i) => {
+                if (result.status === 'fulfilled' && result.value?.value) {
+                    bountyMap.set(uniqueBountyIds[i], result.value.value);
+                }
+            });
+
+            // Filter submissions that belong to bounties owned by the current user
+            const submissionData: SubmissionWithBounty[] = [];
+            for (const sub of validSubs) {
+                const bounty = bountyMap.get(sub.bountyId);
+                if (bounty && bounty.project.value === address) {
+                    submissionData.push({
+                        id: sub.index,
+                        bountyId: sub.bountyId,
+                        researcher: sub.value.researcher.value,
+                        severity: sub.value.severity.value,
+                        reportHash: sub.value['report-hash'].value,
+                        submittedAt: sub.value['submitted-at'].value,
+                        status: sub.value.status.value,
+                        rewardAmount: sub.value['reward-amount'].value / 1000000,
+                        bountyTitle: bounty.title.value,
+                    });
                 }
             }
-            
+
             setSubmissions(submissionData);
         } catch (err) {
             console.error('Failed to load submissions:', err);
