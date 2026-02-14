@@ -64,3 +64,62 @@ Clarinet.test({
         assertEquals(dispute['status'], types.ascii("open"));
     }
 });
+
+Clarinet.test({
+    name: "Arbiter can vote on dispute",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const user = accounts.get('wallet_1')!;
+        const arbiter = accounts.get('wallet_2')!;
+
+        // Register arbiter
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'register-arbiter',
+                [],
+                arbiter.address
+            )
+        ]);
+
+        // Create dispute
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'create-dispute',
+                [
+                    types.uint(1),
+                    types.utf8("Testing vote functionality")
+                ],
+                user.address
+            )
+        ]);
+
+        // Arbiter votes for the dispute
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'vote-on-dispute',
+                [
+                    types.uint(1),
+                    types.bool(true)
+                ],
+                arbiter.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+
+        // Verify vote was recorded
+        let disputeResult = chain.callReadOnlyFn(
+            'dispute-resolver',
+            'get-dispute',
+            [types.uint(1)],
+            user.address
+        );
+
+        const dispute = disputeResult.result.expectSome().expectTuple();
+        assertEquals(dispute['votes-for'], types.uint(1));
+        assertEquals(dispute['votes-against'], types.uint(0));
+    }
+});
+
