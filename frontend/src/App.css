@@ -465,6 +465,21 @@ button[type="submit"]:disabled {
   margin-top: 1rem;
 }
 
+.info-message {
+  background: rgba(0, 123, 255, 0.1);
+  border: 1px solid #0d6efd;
+  color: #084298;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.info-message p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 /* Bounty List Enhancements */
 .bounty-list .header-actions {
   display: flex;
