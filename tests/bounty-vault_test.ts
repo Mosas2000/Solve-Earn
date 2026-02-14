@@ -328,3 +328,57 @@ Clarinet.test({
         block.receipts[0].result.expectOk().expectBool(true);
     }
 });
+
+Clarinet.test({
+    name: "Prevents unauthorized user from rejecting submission",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+        const unauthorized = accounts.get('wallet_3')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Auth Test Bounty"),
+                    types.utf8("Testing unauthorized rejection"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Researcher submits vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(11))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Unauthorized user tries to reject - should fail with err u200
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'reject-submission',
+                [types.uint(1)],
+                unauthorized.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(200);
+    }
+});
