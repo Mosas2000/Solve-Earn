@@ -275,3 +275,396 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(207);
     }
 });
+
+Clarinet.test({
+    name: "Project can reject a vulnerability submission",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Rejection Test Bounty"),
+                    types.utf8("Testing submission rejection flow"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Researcher submits vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("medium"),
+                    types.buff(new Uint8Array(32).fill(10))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Project rejects the submission
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'reject-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+    }
+});
+
+Clarinet.test({
+    name: "Prevents unauthorized user from rejecting submission",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+        const unauthorized = accounts.get('wallet_3')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Auth Test Bounty"),
+                    types.utf8("Testing unauthorized rejection"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Researcher submits vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(11))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Unauthorized user tries to reject - should fail with err u200
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'reject-submission',
+                [types.uint(1)],
+                unauthorized.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(200);
+    }
+});
+
+Clarinet.test({
+    name: "Project owner can close active bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Close Test Bounty"),
+                    types.utf8("Testing bounty closure functionality"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Close the bounty
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'close-bounty',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+    }
+});
+
+Clarinet.test({
+    name: "Prevents unauthorized user from closing bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const unauthorized = accounts.get('wallet_3')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Unauthorized Close Test"),
+                    types.utf8("Testing unauthorized closure attempt"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Unauthorized user tries to close - should fail with err u200
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'close-bounty',
+                [types.uint(1)],
+                unauthorized.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(200);
+    }
+});
+
+Clarinet.test({
+    name: "Prevents unauthorized user from approving submission",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+        const unauthorized = accounts.get('wallet_3')!;
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Approval Auth Test"),
+                    types.utf8("Testing unauthorized approval attempt"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Researcher submits vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(new Uint8Array(32).fill(12))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Unauthorized user tries to approve - should fail with err u200
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                unauthorized.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(200);
+    }
+});
+
+Clarinet.test({
+    name: "Prevents submission to expired bounty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Create bounty with very short duration (10 blocks)
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Expiry Test Bounty"),
+                    types.utf8("Testing expiration validation"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(10)  // Very short duration
+                ],
+                project.address
+            )
+        ]);
+
+        // Mine blocks to pass expiration
+        for (let i = 0; i < 12; i++) {
+            chain.mineEmptyBlock();
+        }
+
+        // Try to submit after expiration - should fail with err u203
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(13))
+                ],
+                researcher.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(203);
+    }
+});
+
+Clarinet.test({
+    name: "Prevents approval when remaining pool is insufficient",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher1 = accounts.get('wallet_2')!;
+        const researcher2 = accounts.get('wallet_3')!;
+
+        // Create bounty with minimal pool (just enough for one critical reward)
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Limited Pool Bounty"),
+                    types.utf8("Testing pool depletion"),
+                    types.uint(2000000),  // Only enough for one critical
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // First researcher submits critical vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(new Uint8Array(32).fill(14))
+                ],
+                researcher1.address
+            )
+        ]);
+
+        // Approve first submission (depletes pool)
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        // Second researcher submits
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(15))
+                ],
+                researcher2.address
+            )
+        ]);
+
+        // Try to approve second when pool is depleted - should fail with err u202
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(2)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(202);
+    }
+});
+
+Clarinet.test({
+    name: "Prevents bounty creation with insufficient pool for rewards",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+
+        // Try to create bounty where total-pool < sum of rewards
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Invalid Pool Bounty"),
+                    types.utf8("Pool smaller than reward sum"),
+                    types.uint(1000000),  // Pool is 1M
+                    types.uint(2000000),  // But rewards sum to much more
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Should fail with err u202 (insufficient funds)
+        block.receipts[0].result.expectErr().expectUint(202);
+    }
+});
