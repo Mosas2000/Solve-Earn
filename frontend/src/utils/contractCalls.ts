@@ -134,20 +134,44 @@ export async function rejectSubmission(
 }
 
 export async function getBounty(bountyId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'get-bounty',
-        functionArgs: [uintCV(bountyId)],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-bounty',
+            functionArgs: [uintCV(bountyId)],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getBounty');
+        return parsed;
+    } catch (error) {
+        console.error(`getBounty(${bountyId}) failed:`, error);
+        throw new Error(`Failed to fetch bounty #${bountyId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function getSubmission(submissionId: number, senderAddress: string) {
-    const result = await callReadOnlyFunction({
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-submission',
+            functionArgs: [uintCV(submissionId)],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getSubmission');
+        return parsed;
+    } catch (error) {
+        console.error(`getSubmission(${submissionId}) failed:`, error);
+        throw new Error(`Failed to fetch submission #${submissionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
         contractAddress: CONTRACT_ADDRESS,
         contractName: BOUNTY_CONTRACT,
         functionName: 'get-submission',
@@ -160,29 +184,43 @@ export async function getSubmission(submissionId: number, senderAddress: string)
 }
 
 export async function getTotalBounties(senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'get-total-bounties',
-        functionArgs: [],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-total-bounties',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalBounties');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalBounties failed:', error);
+        throw new Error(`Failed to fetch total bounties count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function getTotalSubmissions(senderAddress: string) {
-    const result = await callReadOnlyFunction({
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'get-total-submissions',
-        functionArgs: [],
-        network,
-        senderAddress,
-    });
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-total-submissions',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
 
-    return cvToJSON(result);
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalSubmissions');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalSubmissions failed:', error);
+        throw new Error(`Failed to fetch total submissions count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export async function closeBounty(bountyId: number, senderAddress: string) {
