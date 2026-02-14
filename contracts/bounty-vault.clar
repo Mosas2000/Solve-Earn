@@ -182,6 +182,15 @@
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
         (asserts! (>= (get remaining-pool bounty) reward) err-insufficient-funds)
         (try! (as-contract (stx-transfer? reward tx-sender (get researcher submission))))
+        (print {
+            event: "reward-payment",
+            submission-id: submission-id,
+            bounty-id: bounty-id,
+            amount: reward,
+            recipient: (get researcher submission),
+            severity: (get severity submission),
+            block-height: block-height
+        })
         (map-set submissions
             { submission-id: submission-id }
             (merge submission { status: "approved" })
@@ -218,7 +227,16 @@
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
         (if (> remaining u0)
-            (try! (as-contract (stx-transfer? remaining tx-sender (get project bounty))))
+            (begin
+                (try! (as-contract (stx-transfer? remaining tx-sender (get project bounty))))
+                (print {
+                    event: "bounty-refund",
+                    bounty-id: bounty-id,
+                    amount: remaining,
+                    recipient: (get project bounty),
+                    block-height: block-height
+                })
+            )
             true
         )
         (map-set bounties
