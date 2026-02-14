@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
 import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '../utils/contractCalls';
-import type { Submission } from '../types';
+import { getReport } from '../utils/reportStorage';
+import type { Submission, StoredReport } from '../types';
 import '../styles/ErrorStates.css';
+import '../styles/ReportDisplay.css';
 
 interface SubmissionWithBounty extends Submission {
     bountyTitle?: string;
+    reportContent?: StoredReport | null;
 }
 
 export function ManageSubmissions() {
@@ -14,6 +17,7 @@ export function ManageSubmissions() {
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [error, setError] = useState('');
+    const [expandedSubmission, setExpandedSubmission] = useState<number | null>(null);
 
     useEffect(() => {
         if (isConnected) {
@@ -91,16 +95,29 @@ export function ManageSubmissions() {
                             console.warn(`Submission ${sub.index} missing required fields:`, sub.value);
                             continue;
                         }
+                        
+                        const reportHash = sub.value['report-hash']?.value || '';
+                        
+                        // Fetch off-chain report content if available
+                        let reportContent: StoredReport | null = null;
+                        if (reportHash) {
+                            reportContent = getReport(reportHash);
+                            if (!reportContent) {
+                                console.warn(`Report not found for hash: ${reportHash}`);
+                            }
+                        }
+                        
                         submissionData.push({
                             id: sub.index,
                             bountyId: sub.bountyId,
                             researcher: sub.value.researcher.value,
                             severity: sub.value.severity.value,
-                            reportHash: sub.value['report-hash']?.value || '',
+                            reportHash,
                             submittedAt: sub.value['submitted-at']?.value || 0,
                             status: sub.value.status?.value || 'pending',
                             rewardAmount: (sub.value['reward-amount']?.value || 0) / 1000000,
                             bountyTitle: bounty.title?.value || 'Untitled Bounty',
+                            reportContent,
                         });
                     }
                 } catch (parseErr) {
@@ -166,6 +183,10 @@ export function ManageSubmissions() {
 
     const getStatusClass = (status: string) => {
         return `status-${status.toLowerCase()}`;
+    };
+
+    const toggleExpanded = (submissionId: number) => {
+        setExpandedSubmission(expandedSubmission === submissionId ? null : submissionId);
     };
 
     if (!isConnected) {
@@ -264,6 +285,52 @@ export function ManageSubmissions() {
                                     <span className="value">Block #{submission.submittedAt}</span>
                                 </div>
                             </div>
+
+                            {submission.reportContent ? (
+                                <div className="report-section">
+                                    <button 
+                                        className="view-report-btn"
+                                        onClick={() => toggleExpanded(submission.id)}
+                                    >
+                                        {expandedSubmission === submission.id ? '▼ Hide Report' : '▶ View Full Report'}
+                                    </button>
+                                    
+                                    {expandedSubmission === submission.id && (
+                                        <div className="report-content">
+                                            <div className="report-field">
+                                                <h4>Description</h4>
+                                                <p>{submission.reportContent.description || 'No description provided'}</p>
+                                            </div>
+                                            
+                                            {submission.reportContent.proofOfConcept && (
+                                                <div className="report-field">
+                                                    <h4>Proof of Concept</h4>
+                                                    <pre>{submission.reportContent.proofOfConcept}</pre>
+                                                </div>
+                                            )}
+                                            
+                                            {submission.reportContent.impact && (
+                                                <div className="report-field">
+                                                    <h4>Impact Assessment</h4>
+                                                    <p>{submission.reportContent.impact}</p>
+                                                </div>
+                                            )}
+                                            
+                                            {submission.reportContent.recommendation && (
+                                                <div className="report-field">
+                                                    <h4>Recommended Fix</h4>
+                                                    <p>{submission.reportContent.recommendation}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="report-unavailable">
+                                    <p>⚠️ Report content not available off-chain</p>
+                                    <small>Only the hash is stored on the blockchain</small>
+                                </div>
+                            )}
 
                             {submission.status === 'pending' && (
                                 <div className="submission-actions">
