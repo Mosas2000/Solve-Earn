@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useStacks } from '../hooks/useStacks';
 import { createBounty } from '../utils/contractCalls';
+import { useToast } from './ToastProvider';
 import type { CreateBountyForm } from '../types';
 
 export function CreateBounty() {
     const { address, isConnected } = useStacks();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
-    const [txId, setTxId] = useState('');
     const [formData, setFormData] = useState<CreateBountyForm>({
         title: '',
         description: '',
@@ -24,8 +25,25 @@ export function CreateBounty() {
 
         setLoading(true);
         try {
-            const txid = await createBounty(formData, address);
-            setTxId(txid);
+            const txId = await createBounty(
+                formData,
+                address,
+                () => {
+                    // Success callback - transaction confirmed
+                    showToast('Bounty created successfully!', 'success');
+                    // Form is already reset
+                },
+                (error: string) => {
+                    // Error callback - transaction failed
+                    showToast(`Failed to create bounty: ${error}`, 'error');
+                }
+            );
+            
+            // Transaction broadcast - show info
+            showToast('Transaction broadcast! Waiting for confirmation...', 'info');
+            console.log('Transaction ID:', txId);
+            
+            // Reset form
             setFormData({
                 title: '',
                 description: '',
@@ -38,6 +56,7 @@ export function CreateBounty() {
             });
         } catch (error) {
             console.error('Failed to create bounty:', error);
+            showToast(error instanceof Error ? error.message : 'Failed to create bounty', 'error');
         } finally {
             setLoading(false);
         }
