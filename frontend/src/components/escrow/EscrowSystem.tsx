@@ -274,22 +274,22 @@ export const EscrowSystem = ({
         <p className="escrow-contract-id">ID: {contract.id}</p>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="escrow-body">
         {/* Amount */}
-        <div className="text-center py-6 bg-slate-800/50 rounded-lg">
-          <p className="text-sm text-slate-400 mb-2">Secured Amount</p>
-          <p className="text-3xl font-bold text-white">{contract.amount} STX</p>
+        <div className="escrow-amount-box">
+          <p className="escrow-amount-label">Secured Amount</p>
+          <p className="escrow-amount-value">{contract.amount} STX</p>
         </div>
 
         {/* Parties */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-slate-800/30 rounded-lg p-4">
-            <p className="text-xs text-slate-400 mb-2">Employer</p>
-            <p className="text-sm text-white font-mono break-all">{contract.employer.slice(0, 10)}...</p>
+        <div className="escrow-parties">
+          <div className="escrow-party-card">
+            <p className="escrow-party-label">Employer</p>
+            <p className="escrow-party-address">{contract.employer.slice(0, 10)}...</p>
           </div>
-          <div className="bg-slate-800/30 rounded-lg p-4">
-            <p className="text-xs text-slate-400 mb-2">Worker</p>
-            <p className="text-sm text-white font-mono break-all">{contract.worker.slice(0, 10)}...</p>
+          <div className="escrow-party-card">
+            <p className="escrow-party-label">Worker</p>
+            <p className="escrow-party-address">{contract.worker.slice(0, 10)}...</p>
           </div>
         </div>
 
