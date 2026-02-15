@@ -298,3 +298,92 @@
   font-weight: 700;
   color: var(--text);
 }
+
+/* ---------- Party Grid ---------- */
+
+.escrow-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.escrow-party-card {
+  background: var(--surface-light);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.escrow-party-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.escrow-party-address {
+  font-size: 0.875rem;
+  color: var(--text);
+  font-family: 'Fira Code', 'SF Mono', monospace;
+  word-break: break-all;
+}
+
+/* ---------- Milestones ---------- */
+
+.escrow-milestones-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.escrow-milestones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escrow-milestone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--surface-light);
+  border-radius: 8px;
+}
+
+.escrow-milestone-info {
+  flex: 1;
+}
+
+.escrow-milestone-desc {
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.escrow-milestone-amount {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.escrow-milestone-badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.escrow-milestone-badge--released {
+  background: rgba(0, 212, 170, 0.1);
+  color: var(--success);
+}
+
+.escrow-milestone-badge--approved {
+  background: rgba(85, 70, 255, 0.1);
+  color: var(--primary);
+}
+
+.escrow-milestone-badge--pending {
+  background: var(--surface-light);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
