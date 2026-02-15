@@ -194,40 +194,40 @@ export const EscrowSystem = ({
 
   if (view === 'dispute' && contract) {
     return (
-      <div className={cn('bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6', className)}>
-        <h3 className="text-xl font-bold text-white mb-6">Submit Dispute</h3>
+      <div className="escrow-card">
+        <h3 className="escrow-title">Submit Dispute</h3>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-slate-400 mb-2 block">Dispute Reason</label>
+        <div>
+          <div className="escrow-form-group">
+            <label>Dispute Reason</label>
             <textarea
               value={disputeReason}
               onChange={(e) => setDisputeReason(e.target.value)}
               placeholder="Explain why you are disputing this escrow contract..."
               rows={5}
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-glow-pink resize-none"
+              className="escrow-textarea"
             />
           </div>
 
-          <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-            <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-300">
+          <div className="escrow-info-banner escrow-info-banner--danger">
+            <AlertCircle className="escrow-info-icon" size={16} />
+            <p className="escrow-info-text">
               A dispute will freeze the escrow and require resolution through the dispute resolver contract.
             </p>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="escrow-btn-row">
             <button
               onClick={() => setView('overview')}
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors"
+              className="escrow-btn escrow-btn--secondary"
             >
               Cancel
             </button>
             <button
               onClick={handleDispute}
               disabled={loading || !disputeReason}
-              className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+              className="escrow-btn escrow-btn--danger"
             >
               {loading ? 'Submitting...' : 'Submit Dispute'}
             </button>
