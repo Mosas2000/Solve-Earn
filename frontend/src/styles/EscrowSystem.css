@@ -387,3 +387,69 @@
   color: var(--text-muted);
   border: 1px solid var(--border);
 }
+
+/* ---------- Empty State ---------- */
+
+.escrow-empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.escrow-empty-icon {
+  width: 4rem;
+  height: 4rem;
+  color: var(--border);
+  margin: 0 auto 1rem;
+}
+
+.escrow-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.escrow-empty-desc {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.escrow-empty-btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+  font-size: 0.9375rem;
+}
+
+.escrow-empty-btn:hover {
+  background: var(--primary-dark);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 640px) {
+  .escrow-parties {
+    grid-template-columns: 1fr;
+  }
+
+  .escrow-btn-row {
+    flex-direction: column;
+  }
+
+  .escrow-amount-value {
+    font-size: 1.5rem;
+  }
+
+  .escrow-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
