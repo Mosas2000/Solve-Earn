@@ -261,23 +261,17 @@ export const EscrowSystem = ({
   const StatusIcon = statusCfg.icon;
 
   return (
-    <div className={cn('bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl', className)}>
-      <div className="p-6 border-b border-slate-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Escrow Contract</h3>
-          <div
-            className={cn(
-              'inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium',
-              statusCfg.bg,
-              statusCfg.color
-            )}
-          >
-            <StatusIcon className="h-4 w-4" />
+    <div className="escrow-card-flush">
+      <div className="escrow-header">
+        <div className="escrow-header-row">
+          <h3 className="escrow-header-title">Escrow Contract</h3>
+          <div className={`escrow-status-badge ${statusCfg.cssClass}`}>
+            <StatusIcon className="escrow-status-icon" />
             {statusCfg.label}
           </div>
         </div>
 
-        <p className="text-sm text-slate-400 font-mono">ID: {contract.id}</p>
+        <p className="escrow-contract-id">ID: {contract.id}</p>
       </div>
 
       <div className="p-6 space-y-6">
