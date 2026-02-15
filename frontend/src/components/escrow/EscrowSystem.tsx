@@ -126,63 +126,63 @@ export const EscrowSystem = ({
 
   if (view === 'create') {
     return (
-      <div className={cn('bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6', className)}>
-        <h3 className="text-xl font-bold text-white mb-6">Create Escrow Contract</h3>
+      <div className="escrow-card">
+        <h3 className="escrow-title">Create Escrow Contract</h3>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-slate-400 mb-2 block">Bounty ID</label>
+        <div>
+          <div className="escrow-form-group">
+            <label>Bounty ID</label>
             <input
               type="text"
               value={createData.bountyId}
               onChange={(e) => setCreateData({ ...createData, bountyId: e.target.value })}
               placeholder="Enter bounty ID"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-glow-pink"
+              className="escrow-input"
             />
           </div>
 
-          <div>
-            <label className="text-sm text-slate-400 mb-2 block">Worker Address</label>
+          <div className="escrow-form-group">
+            <label>Worker Address</label>
             <input
               type="text"
               value={createData.worker}
               onChange={(e) => setCreateData({ ...createData, worker: e.target.value })}
               placeholder="SP..."
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white font-mono placeholder-slate-500 focus:outline-none focus:border-glow-pink"
+              className="escrow-input escrow-input-mono"
             />
           </div>
 
-          <div>
-            <label className="text-sm text-slate-400 mb-2 block">Escrow Amount (STX)</label>
+          <div className="escrow-form-group">
+            <label>Escrow Amount (STX)</label>
             <input
               type="number"
               value={createData.amount}
               onChange={(e) => setCreateData({ ...createData, amount: e.target.value })}
               placeholder="0.00"
               step="0.01"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-glow-pink"
+              className="escrow-input"
             />
           </div>
 
-          <div className="flex items-start gap-2 p-3 bg-glow-blue/10 border border-glow-blue/30 rounded-lg">
-            <Shield className="h-4 w-4 text-glow-blue flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-300">
+          <div className="escrow-info-banner escrow-info-banner--info">
+            <Shield className="escrow-info-icon" size={16} />
+            <p className="escrow-info-text">
               Funds will be locked in a smart contract until work is completed and verified.
             </p>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="escrow-btn-row">
             <button
               onClick={() => setView('overview')}
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors"
+              className="escrow-btn escrow-btn--secondary"
             >
               Cancel
             </button>
             <button
               onClick={handleCreateEscrow}
               disabled={loading || !createData.bountyId || !createData.worker || !createData.amount}
-              className="flex-1 px-4 py-3 bg-glow-pink hover:bg-glow-pink/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+              className="escrow-btn escrow-btn--primary"
             >
               {loading ? 'Creating...' : 'Create Escrow'}
             </button>
