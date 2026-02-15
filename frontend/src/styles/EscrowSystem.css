@@ -1,0 +1,455 @@
+/* ==========================================================================
+   Escrow System Component Styles
+   Migrated from Tailwind utility classes to plain CSS
+   Follows the same pattern as existing App.css and component styles
+   ========================================================================== */
+
+/* ---------- Container & Card ---------- */
+
+.escrow-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.escrow-card-flush {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* ---------- Section Headers ---------- */
+
+.escrow-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+}
+
+/* ---------- Form Layout ---------- */
+
+.escrow-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.escrow-form-group label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.escrow-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.escrow-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.escrow-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.escrow-input-mono {
+  font-family: 'Fira Code', 'SF Mono', monospace;
+}
+
+.escrow-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  resize: none;
+  transition: border-color 0.2s;
+}
+
+.escrow-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.escrow-textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* ---------- Info Banners ---------- */
+
+.escrow-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.escrow-info-banner--info {
+  background: rgba(85, 70, 255, 0.08);
+  border: 1px solid rgba(85, 70, 255, 0.2);
+}
+
+.escrow-info-banner--info .escrow-info-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.escrow-info-banner--danger {
+  background: rgba(255, 87, 87, 0.08);
+  border: 1px solid rgba(255, 87, 87, 0.2);
+}
+
+.escrow-info-banner--danger .escrow-info-icon {
+  color: var(--danger);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.escrow-info-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+
+.escrow-btn-row {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+}
+
+.escrow-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  font-family: inherit;
+}
+
+.escrow-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.escrow-btn--secondary {
+  background: var(--surface-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.escrow-btn--secondary:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.escrow-btn--primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.escrow-btn--primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.escrow-btn--danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.escrow-btn--danger:hover:not(:disabled) {
+  background: #e04a4a;
+}
+
+.escrow-btn--danger-outline {
+  background: rgba(255, 87, 87, 0.08);
+  color: var(--danger);
+  border: 1px solid rgba(255, 87, 87, 0.25);
+}
+
+.escrow-btn--danger-outline:hover:not(:disabled) {
+  background: rgba(255, 87, 87, 0.15);
+}
+
+.escrow-btn--success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.escrow-btn--success:hover:not(:disabled) {
+  background: #00b894;
+}
+
+/* ---------- Status Badges ---------- */
+
+.escrow-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.escrow-status-badge .escrow-status-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.escrow-status--pending {
+  background: rgba(255, 193, 7, 0.1);
+  color: var(--warning);
+}
+
+.escrow-status--active {
+  background: rgba(85, 70, 255, 0.1);
+  color: var(--primary);
+}
+
+.escrow-status--completed {
+  background: rgba(0, 212, 170, 0.1);
+  color: var(--success);
+}
+
+.escrow-status--disputed {
+  background: rgba(255, 87, 87, 0.1);
+  color: var(--danger);
+}
+
+.escrow-status--refunded {
+  background: var(--surface-light);
+  color: var(--text-muted);
+}
+
+/* ---------- Contract Header ---------- */
+
+.escrow-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.escrow-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.escrow-header-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.escrow-contract-id {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-family: 'Fira Code', 'SF Mono', monospace;
+}
+
+/* ---------- Contract Body ---------- */
+
+.escrow-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ---------- Amount Display ---------- */
+
+.escrow-amount-box {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--surface-light);
+  border-radius: 8px;
+}
+
+.escrow-amount-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.escrow-amount-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ---------- Party Grid ---------- */
+
+.escrow-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.escrow-party-card {
+  background: var(--surface-light);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.escrow-party-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.escrow-party-address {
+  font-size: 0.875rem;
+  color: var(--text);
+  font-family: 'Fira Code', 'SF Mono', monospace;
+  word-break: break-all;
+}
+
+/* ---------- Milestones ---------- */
+
+.escrow-milestones-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.escrow-milestones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escrow-milestone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--surface-light);
+  border-radius: 8px;
+}
+
+.escrow-milestone-info {
+  flex: 1;
+}
+
+.escrow-milestone-desc {
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.escrow-milestone-amount {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.escrow-milestone-badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.escrow-milestone-badge--released {
+  background: rgba(0, 212, 170, 0.1);
+  color: var(--success);
+}
+
+.escrow-milestone-badge--approved {
+  background: rgba(85, 70, 255, 0.1);
+  color: var(--primary);
+}
+
+.escrow-milestone-badge--pending {
+  background: var(--surface-light);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+/* ---------- Empty State ---------- */
+
+.escrow-empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.escrow-empty-icon {
+  width: 4rem;
+  height: 4rem;
+  color: var(--border);
+  margin: 0 auto 1rem;
+}
+
+.escrow-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.escrow-empty-desc {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.escrow-empty-btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+  font-size: 0.9375rem;
+}
+
+.escrow-empty-btn:hover {
+  background: var(--primary-dark);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 640px) {
+  .escrow-parties {
+    grid-template-columns: 1fr;
+  }
+
+  .escrow-btn-row {
+    flex-direction: column;
+  }
+
+  .escrow-amount-value {
+    font-size: 1.5rem;
+  }
+
+  .escrow-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
