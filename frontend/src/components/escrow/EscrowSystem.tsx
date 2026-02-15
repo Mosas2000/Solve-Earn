@@ -315,17 +315,17 @@ export const EscrowSystem = ({
 
         {/* Actions */}
         {contract.status === 'active' && (
-          <div className="flex gap-3 pt-4">
+          <div className="escrow-actions">
             <button
               onClick={() => setView('dispute')}
-              className="flex-1 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 font-semibold rounded-lg transition-colors"
+              className="escrow-btn escrow-btn--danger-outline"
             >
               Raise Dispute
             </button>
             <button
               onClick={handleRelease}
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-glow-green hover:bg-glow-green/90 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors"
+              className="escrow-btn escrow-btn--success"
             >
               {loading ? 'Releasing...' : 'Release Payment'}
             </button>
