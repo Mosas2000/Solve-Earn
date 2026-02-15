@@ -89,3 +89,114 @@
   color: var(--text-muted);
   opacity: 0.6;
 }
+
+/* ---------- Info Banners ---------- */
+
+.escrow-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.escrow-info-banner--info {
+  background: rgba(85, 70, 255, 0.08);
+  border: 1px solid rgba(85, 70, 255, 0.2);
+}
+
+.escrow-info-banner--info .escrow-info-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.escrow-info-banner--danger {
+  background: rgba(255, 87, 87, 0.08);
+  border: 1px solid rgba(255, 87, 87, 0.2);
+}
+
+.escrow-info-banner--danger .escrow-info-icon {
+  color: var(--danger);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.escrow-info-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+
+.escrow-btn-row {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+}
+
+.escrow-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  font-family: inherit;
+}
+
+.escrow-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.escrow-btn--secondary {
+  background: var(--surface-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.escrow-btn--secondary:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.escrow-btn--primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.escrow-btn--primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.escrow-btn--danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.escrow-btn--danger:hover:not(:disabled) {
+  background: #e04a4a;
+}
+
+.escrow-btn--danger-outline {
+  background: rgba(255, 87, 87, 0.08);
+  color: var(--danger);
+  border: 1px solid rgba(255, 87, 87, 0.25);
+}
+
+.escrow-btn--danger-outline:hover:not(:disabled) {
+  background: rgba(255, 87, 87, 0.15);
+}
+
+.escrow-btn--success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.escrow-btn--success:hover:not(:disabled) {
+  background: #00b894;
+}
