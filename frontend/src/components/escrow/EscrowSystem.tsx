@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lock, Users, Shield, Clock, CheckCircle, AlertCircle, Copy, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import '../../styles/EscrowSystem.css';
 
 export interface EscrowContract {
   id: string;
