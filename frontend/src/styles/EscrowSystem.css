@@ -1,0 +1,91 @@
+/* ==========================================================================
+   Escrow System Component Styles
+   Migrated from Tailwind utility classes to plain CSS
+   Follows the same pattern as existing App.css and component styles
+   ========================================================================== */
+
+/* ---------- Container & Card ---------- */
+
+.escrow-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.escrow-card-flush {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* ---------- Section Headers ---------- */
+
+.escrow-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+}
+
+/* ---------- Form Layout ---------- */
+
+.escrow-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.escrow-form-group label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.escrow-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.escrow-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.escrow-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.escrow-input-mono {
+  font-family: 'Fira Code', 'SF Mono', monospace;
+}
+
+.escrow-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  resize: none;
+  transition: border-color 0.2s;
+}
+
+.escrow-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.escrow-textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
