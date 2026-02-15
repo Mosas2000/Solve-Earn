@@ -239,15 +239,15 @@ export const EscrowSystem = ({
 
   if (!contract) {
     return (
-      <div className={cn('bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6', className)}>
-        <div className="text-center py-12">
-          <Lock className="h-16 w-16 text-slate-700 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">No Active Escrow</h3>
-          <p className="text-slate-400 mb-6">Create an escrow contract to secure payments</p>
+      <div className="escrow-card">
+        <div className="escrow-empty">
+          <Lock className="escrow-empty-icon" />
+          <h3 className="escrow-empty-title">No Active Escrow</h3>
+          <p className="escrow-empty-desc">Create an escrow contract to secure payments</p>
           {onCreateEscrow && (
             <button
               onClick={() => setView('create')}
-              className="px-6 py-3 bg-glow-pink hover:bg-glow-pink/90 text-white font-semibold rounded-lg transition-colors"
+              className="escrow-empty-btn"
             >
               Create Escrow
             </button>
