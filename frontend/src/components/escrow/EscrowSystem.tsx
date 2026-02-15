@@ -295,23 +295,16 @@ export const EscrowSystem = ({
 
         {/* Milestones */}
         {contract.milestones && contract.milestones.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-3">Milestones</h4>
-            <div className="space-y-2">
+          <div className="escrow-milestones">
+            <h4 className="escrow-milestones-title">Milestones</h4>
+            <div className="escrow-milestones-list">
               {contract.milestones.map((milestone) => (
-                <div key={milestone.id} className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-sm text-white">{milestone.description}</p>
-                    <p className="text-xs text-slate-400 mt-1">{milestone.amount} STX</p>
+                <div key={milestone.id} className="escrow-milestone">
+                  <div className="escrow-milestone-info">
+                    <p className="escrow-milestone-desc">{milestone.description}</p>
+                    <p className="escrow-milestone-amount">{milestone.amount} STX</p>
                   </div>
-                  <div
-                    className={cn(
-                      'px-2 py-1 rounded text-xs font-medium',
-                      milestone.status === 'released' && 'bg-glow-green/10 text-glow-green',
-                      milestone.status === 'approved' && 'bg-glow-blue/10 text-glow-blue',
-                      milestone.status === 'pending' && 'bg-slate-700 text-slate-400'
-                    )}
-                  >
+                  <div className={`escrow-milestone-badge escrow-milestone-badge--${milestone.status}`}>
                     {milestone.status}
                   </div>
                 </div>
