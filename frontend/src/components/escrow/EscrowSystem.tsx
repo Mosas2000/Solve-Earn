@@ -42,37 +42,27 @@ export interface CreateEscrowData {
 const statusConfig = {
   pending: {
     icon: Clock,
-    color: 'text-glow-gold',
-    bg: 'bg-glow-gold/10',
-    border: 'border-glow-gold/30',
+    cssClass: 'escrow-status--pending',
     label: 'Pending Acceptance',
   },
   active: {
     icon: Lock,
-    color: 'text-glow-blue',
-    bg: 'bg-glow-blue/10',
-    border: 'border-glow-blue/30',
+    cssClass: 'escrow-status--active',
     label: 'Active',
   },
   completed: {
     icon: CheckCircle,
-    color: 'text-glow-green',
-    bg: 'bg-glow-green/10',
-    border: 'border-glow-green/30',
+    cssClass: 'escrow-status--completed',
     label: 'Completed',
   },
   disputed: {
     icon: AlertCircle,
-    color: 'text-red-500',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
+    cssClass: 'escrow-status--disputed',
     label: 'Disputed',
   },
   refunded: {
     icon: AlertCircle,
-    color: 'text-slate-500',
-    bg: 'bg-slate-500/10',
-    border: 'border-slate-500/30',
+    cssClass: 'escrow-status--refunded',
     label: 'Refunded',
   },
 };
