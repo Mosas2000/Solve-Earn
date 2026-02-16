@@ -9,11 +9,12 @@ requirements = []
 [repl]
 epoch = "3.0"
 
-[contracts.bounty-vault]
-path = "contracts/bounty-vault.clar"
-
 [contracts.reputation]
 path = "contracts/reputation.clar"
+
+[contracts.bounty-vault]
+path = "contracts/bounty-vault.clar"
+depends_on = ["reputation"]
 
 [contracts.dispute-resolver]
 path = "contracts/dispute-resolver.clar"
