@@ -9,6 +9,9 @@
 
 (define-data-var total-researchers uint u0)
 
+;; On-chain list of registered researcher principals for enumeration
+(define-data-var researcher-list (list 200 principal) (list))
+
 (define-map researcher-profiles
     { researcher: principal }
     {
@@ -52,6 +55,9 @@
             }
         )
         (var-set total-researchers (+ (var-get total-researchers) u1))
+        (var-set researcher-list
+            (unwrap-panic (as-max-len?
+                (append (var-get researcher-list) tx-sender) u200)))
         (ok true)
     )
 )
@@ -124,6 +130,11 @@
 
 (define-read-only (get-total-researchers)
     (ok (var-get total-researchers))
+)
+
+;; Returns the full list of registered researcher principals
+(define-read-only (get-researcher-list)
+    (ok (var-get researcher-list))
 )
 
 (define-read-only (calculate-success-rate (researcher principal))

@@ -51,7 +51,7 @@ export async function createBounty(
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
-                
+
                 // Track the transaction
                 transactionTracker.trackTransaction(
                     txId,
@@ -59,7 +59,7 @@ export async function createBounty(
                     onSuccess,
                     onError
                 );
-                
+
                 resolve(txId);
             },
             onCancel: () => {
@@ -98,7 +98,7 @@ export async function submitVulnerability(
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
-                
+
                 // Track the transaction
                 transactionTracker.trackTransaction(
                     txId,
@@ -106,7 +106,7 @@ export async function submitVulnerability(
                     onSuccess,
                     onError
                 );
-                
+
                 resolve(txId);
             },
             onCancel: () => {
@@ -139,7 +139,7 @@ export async function approveSubmission(
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
-                
+
                 // Track the transaction
                 transactionTracker.trackTransaction(
                     txId,
@@ -147,7 +147,7 @@ export async function approveSubmission(
                     onSuccess,
                     onError
                 );
-                
+
                 resolve(txId);
             },
             onCancel: () => {
@@ -180,7 +180,7 @@ export async function rejectSubmission(
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
-                
+
                 // Track the transaction
                 transactionTracker.trackTransaction(
                     txId,
@@ -188,7 +188,7 @@ export async function rejectSubmission(
                     onSuccess,
                     onError
                 );
-                
+
                 resolve(txId);
             },
             onCancel: () => {
@@ -202,19 +202,19 @@ export async function rejectSubmission(
         openContractCall(txOptions);
     });
 }
-        network,
-        anchorMode: AnchorMode.Any,
+network,
+    anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
-        onFinish: (data: any) => {
-            console.log('Transaction sent:', data);
-        },
-        onCancel: () => {
-            console.log('Transaction canceled');
-        },
+            onFinish: (data: any) => {
+                console.log('Transaction sent:', data);
+            },
+                onCancel: () => {
+                    console.log('Transaction canceled');
+                },
     };
 
-    await openContractCall(txOptions);
-    return 'pending';
+await openContractCall(txOptions);
+return 'pending';
 }
 
 export async function getBounty(bountyId: number, senderAddress: string) {
@@ -256,15 +256,15 @@ export async function getSubmission(submissionId: number, senderAddress: string)
         throw new Error(`Failed to fetch submission #${submissionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 }
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
+contractAddress: CONTRACT_ADDRESS,
+    contractName: BOUNTY_CONTRACT,
         functionName: 'get-submission',
-        functionArgs: [uintCV(submissionId)],
-        network,
-        senderAddress,
+            functionArgs: [uintCV(submissionId)],
+                network,
+                senderAddress,
     });
 
-    return cvToJSON(result);
+return cvToJSON(result);
 }
 
 export async function getTotalBounties(senderAddress: string) {
@@ -370,7 +370,7 @@ export async function getResearcherProfile(
         console.error(`getResearcherProfile(${researcher}) failed:`, error);
         throw new Error(`Failed to fetch researcher profile for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-}    return cvToJSON(result);
+} return cvToJSON(result);
 }
 
 export async function getReputationScore(
@@ -413,6 +413,31 @@ export async function getTotalResearchers(senderAddress: string) {
     } catch (error) {
         console.error('getTotalResearchers failed:', error);
         throw new Error(`Failed to fetch total researchers count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+export async function getResearcherList(senderAddress: string): Promise<string[]> {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'get-researcher-list',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getResearcherList');
+
+        // The response is (ok (list principal)) — extract the principal strings
+        if (parsed?.value && Array.isArray(parsed.value)) {
+            return parsed.value.map((item: any) => item.value as string);
+        }
+        return [];
+    } catch (error) {
+        console.error('getResearcherList failed:', error);
+        throw new Error(`Failed to fetch researcher list: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 }
 
@@ -535,7 +560,7 @@ function validateReadOnlyResponse(response: any, functionName: string): void {
     if (!response) {
         throw new Error(`${functionName} returned null or undefined`);
     }
-    
+
     if (response.error) {
         throw new Error(`${functionName} returned error: ${JSON.stringify(response.error)}`);
     }
