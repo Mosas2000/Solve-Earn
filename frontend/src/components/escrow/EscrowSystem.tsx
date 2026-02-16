@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import {
   LockIcon,
-  UsersIcon,
   ShieldIcon,
   ClockIcon,
   CheckCircleIcon,
   AlertCircleIcon,
-  CopyIcon,
-  ExternalLinkIcon,
 } from '../icons/Icons';
 import '../../styles/EscrowSystem.css';
 
