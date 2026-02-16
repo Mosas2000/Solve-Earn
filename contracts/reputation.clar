@@ -142,3 +142,24 @@
         err-not-found
     )
 )
+
+;; Owner-only: authorize a contract principal to call reputation updates
+(define-public (set-trusted-caller (caller principal))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (ok (map-set trusted-callers { caller: caller } { is-trusted: true }))
+    )
+)
+
+;; Owner-only: revoke a contract principal's authorization
+(define-public (remove-trusted-caller (caller principal))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (ok (map-delete trusted-callers { caller: caller }))
+    )
+)
+
+;; Check whether a given principal is a trusted caller
+(define-read-only (is-trusted-caller (caller principal))
+    (default-to false (get is-trusted (map-get? trusted-callers { caller: caller })))
+)
