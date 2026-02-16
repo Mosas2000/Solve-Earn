@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStacks } from '../hooks/useStacks';
-import { getTotalResearchers, getResearcherProfile, calculateSuccessRate } from '../utils/contractCalls';
+import { getResearcherList, getResearcherProfile, calculateSuccessRate } from '../utils/contractCalls';
 import type { ResearcherProfile } from '../types';
 import '../styles/ErrorStates.css';
 
@@ -25,23 +25,24 @@ export function Leaderboard() {
         setLoading(true);
         setError(null);
         try {
-            // Get total researchers count
+            // Fetch all registered researcher addresses from the contract
+            let researcherAddresses: string[] = [];
             try {
-                await getTotalResearchers(address);
+                researcherAddresses = await getResearcherList(address);
             } catch (err) {
-                console.warn('Failed to get total researchers:', err);
+                console.warn('Failed to get researcher list, falling back to current user:', err);
+                researcherAddresses = [address];
             }
 
-            // For demo purposes, we'll load a sample of researchers
-            // In production, you'd want to implement pagination or load from a backend
-            const sampleAddresses = [
-                address, // Include current user
-                // Add more known addresses if available
-            ];
+            if (researcherAddresses.length === 0) {
+                setResearchers([]);
+                setLoading(false);
+                return;
+            }
 
             // Fetch all researcher profiles and success rates in parallel
             const results = await Promise.allSettled(
-                sampleAddresses.map(async (researcherAddress) => {
+                researcherAddresses.map(async (researcherAddress) => {
                     try {
                         const [profileResult, successRateResult] = await Promise.all([
                             getResearcherProfile(researcherAddress, address),
@@ -88,7 +89,7 @@ export function Leaderboard() {
                 }
             });
 
-            if (leaderboardData.length === 0 && sampleAddresses.length > 0) {
+            if (leaderboardData.length === 0 && researcherAddresses.length > 0) {
                 setError('Unable to load researcher profiles. They may not be registered yet.');
             }
 
@@ -101,11 +102,7 @@ export function Leaderboard() {
             setLoading(false);
         }
     };
-            console.error('Failed to load leaderboard:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     const sortedResearchers = [...researchers].sort((a, b) => {
         switch (sortBy) {
