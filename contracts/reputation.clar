@@ -123,6 +123,11 @@
     (ok (var-get total-researchers))
 )
 
+;; Returns the full list of registered researcher principals
+(define-read-only (get-researcher-list)
+    (ok (var-get researcher-list))
+)
+
 (define-read-only (calculate-success-rate (researcher principal))
     (match (map-get? researcher-profiles { researcher: researcher })
         profile
