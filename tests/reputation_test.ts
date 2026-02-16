@@ -185,3 +185,99 @@ Clarinet.test({
     }
 });
 
+Clarinet.test({
+    name: "Researcher list is initially empty",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const caller = accounts.get('wallet_1')!;
+
+        let result = chain.callReadOnlyFn(
+            'reputation',
+            'get-researcher-list',
+            [],
+            caller.address
+        );
+
+        result.result.expectOk().expectList([]);
+    }
+});
+
+Clarinet.test({
+    name: "Researcher list contains principal after registration",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const researcher = accounts.get('wallet_1')!;
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'register-researcher',
+                [],
+                researcher.address
+            )
+        ]);
+
+        let result = chain.callReadOnlyFn(
+            'reputation',
+            'get-researcher-list',
+            [],
+            researcher.address
+        );
+
+        const list = result.result.expectOk().expectList();
+        assertEquals(list.length, 1);
+        assertEquals(list[0], types.principal(researcher.address));
+    }
+});
+
+Clarinet.test({
+    name: "Researcher list grows with multiple registrations",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const r1 = accounts.get('wallet_1')!;
+        const r2 = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('reputation', 'register-researcher', [], r1.address),
+            Tx.contractCall('reputation', 'register-researcher', [], r2.address)
+        ]);
+
+        let result = chain.callReadOnlyFn(
+            'reputation',
+            'get-researcher-list',
+            [],
+            r1.address
+        );
+
+        const list = result.result.expectOk().expectList();
+        assertEquals(list.length, 2);
+        assertEquals(list[0], types.principal(r1.address));
+        assertEquals(list[1], types.principal(r2.address));
+    }
+});
+
+Clarinet.test({
+    name: "Duplicate registration does not add duplicate to researcher list",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const researcher = accounts.get('wallet_1')!;
+
+        // First registration succeeds
+        chain.mineBlock([
+            Tx.contractCall('reputation', 'register-researcher', [], researcher.address)
+        ]);
+
+        // Second registration fails (err u100)
+        let block = chain.mineBlock([
+            Tx.contractCall('reputation', 'register-researcher', [], researcher.address)
+        ]);
+        block.receipts[0].result.expectErr().expectUint(100);
+
+        // List should still contain only one entry
+        let result = chain.callReadOnlyFn(
+            'reputation',
+            'get-researcher-list',
+            [],
+            researcher.address
+        );
+
+        const list = result.result.expectOk().expectList();
+        assertEquals(list.length, 1);
+    }
+});
