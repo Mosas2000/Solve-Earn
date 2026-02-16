@@ -82,3 +82,29 @@ export const ClockIcon: React.FC<IconProps> = ({
         <polyline points="12 6 12 12 16 14" />
     </svg>
 );
+
+/**
+ * CheckCircleIcon — circled checkmark for success and approval states
+ */
+export const CheckCircleIcon: React.FC<IconProps> = ({
+    size = 24,
+    className = '',
+    color = 'currentColor',
+}) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden="true"
+    >
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+        <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+);
