@@ -7,17 +7,9 @@ mnemonic = "sell invite acquire kitten bamboo drastic jelly vivid peace spawn tw
 balance = 100_000_000_000_000
 
 [accounts.wallet_2]
-mnemonic = "board list obtain sugar hour worth raven scout denial thunder horse logic fury scorpion fold genuine phrase wealth news aim below celery when cabin"
+mnemonic = "hold excess usual excess ring elephant install account glad dry fragile donkey gaze humble truck breeze nation gasp vacuum limb head keep delay hospital"
 balance = 100_000_000_000_000
 
-[contracts.bounty-vault]
-path = "contracts/bounty-vault.clar"
-clarity_version = 1
-
-[contracts.dispute-resolver]
-path = "contracts/dispute-resolver.clar"
-clarity_version = 1
-
-[contracts.reputation]
-path = "contracts/reputation.clar"
-clarity_version = 1
+[accounts.wallet_3]
+mnemonic = "cycle puppy glare enroll cost improve round trend wrist mushroom scorpion tower claim oppose clever elephant dinosaur eight problem before frozen dune wagon high"
+balance = 100_000_000_000_000

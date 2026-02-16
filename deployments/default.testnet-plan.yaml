@@ -9,6 +9,13 @@ plan:
     - id: 0
       transactions:
         - contract-publish:
+            contract-name: reputation
+            expected-sender: ST3382F8A75J4XF2VVNHTFTRZ0MNDX9J97NSNK2FD
+            cost: 5000
+            path: contracts/reputation.clar
+            anchor-block-only: true
+            clarity-version: 1
+        - contract-publish:
             contract-name: bounty-vault
             expected-sender: ST3382F8A75J4XF2VVNHTFTRZ0MNDX9J97NSNK2FD
             cost: 7500
@@ -20,13 +27,6 @@ plan:
             expected-sender: ST3382F8A75J4XF2VVNHTFTRZ0MNDX9J97NSNK2FD
             cost: 3500
             path: contracts/dispute-resolver.clar
-            anchor-block-only: true
-            clarity-version: 1
-        - contract-publish:
-            contract-name: reputation
-            expected-sender: ST3382F8A75J4XF2VVNHTFTRZ0MNDX9J97NSNK2FD
-            cost: 5000
-            path: contracts/reputation.clar
             anchor-block-only: true
             clarity-version: 1
       epoch: "2.1"
