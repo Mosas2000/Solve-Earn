@@ -242,3 +242,28 @@ export const SearchIcon: React.FC<IconProps> = ({
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
 );
+
+/**
+ * FilterIcon — funnel shape for filter and sort controls
+ */
+export const FilterIcon: React.FC<IconProps> = ({
+    size = 24,
+    className = '',
+    color = 'currentColor',
+}) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden="true"
+    >
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+);
