@@ -52,6 +52,9 @@
             }
         )
         (var-set total-researchers (+ (var-get total-researchers) u1))
+        (var-set researcher-list
+            (unwrap-panic (as-max-len?
+                (append (var-get researcher-list) tx-sender) u200)))
         (ok true)
     )
 )
