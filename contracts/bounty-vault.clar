@@ -242,6 +242,7 @@
                     recipient: (get project bounty),
                     block-height: block-height
                 })
+                true
             )
             true
         )
