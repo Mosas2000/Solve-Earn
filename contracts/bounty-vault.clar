@@ -199,6 +199,9 @@
             { bounty-id: bounty-id }
             (merge bounty { remaining-pool: (- (get remaining-pool bounty) reward) })
         )
+        ;; Update researcher reputation on acceptance
+        (try! (contract-call? .reputation update-reputation-on-acceptance
+            (get researcher submission) reward (get severity submission)))
         (ok true)
     )
 )
@@ -215,6 +218,9 @@
             { submission-id: submission-id }
             (merge submission { status: "rejected" })
         )
+        ;; Update researcher reputation on rejection
+        (try! (contract-call? .reputation update-reputation-on-rejection
+            (get researcher submission)))
         (ok true)
     )
 )
