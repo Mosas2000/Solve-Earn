@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { Lock, Users, Shield, Clock, CheckCircle, AlertCircle, Copy, ExternalLink } from 'lucide-react';
+import {
+  LockIcon,
+  UsersIcon,
+  ShieldIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  AlertCircleIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+} from '../icons/Icons';
 import '../../styles/EscrowSystem.css';
 
 export interface EscrowContract {
@@ -41,27 +50,27 @@ export interface CreateEscrowData {
 
 const statusConfig = {
   pending: {
-    icon: Clock,
+    icon: ClockIcon,
     cssClass: 'escrow-status--pending',
     label: 'Pending Acceptance',
   },
   active: {
-    icon: Lock,
+    icon: LockIcon,
     cssClass: 'escrow-status--active',
     label: 'Active',
   },
   completed: {
-    icon: CheckCircle,
+    icon: CheckCircleIcon,
     cssClass: 'escrow-status--completed',
     label: 'Completed',
   },
   disputed: {
-    icon: AlertCircle,
+    icon: AlertCircleIcon,
     cssClass: 'escrow-status--disputed',
     label: 'Disputed',
   },
   refunded: {
-    icon: AlertCircle,
+    icon: AlertCircleIcon,
     cssClass: 'escrow-status--refunded',
     label: 'Refunded',
   },
@@ -165,7 +174,7 @@ export const EscrowSystem = ({
           </div>
 
           <div className="escrow-info-banner escrow-info-banner--info">
-            <Shield className="escrow-info-icon" size={16} />
+            <ShieldIcon className="escrow-info-icon" size={16} />
             <p className="escrow-info-text">
               Funds will be locked in a smart contract until work is completed and verified.
             </p>
@@ -210,7 +219,7 @@ export const EscrowSystem = ({
           </div>
 
           <div className="escrow-info-banner escrow-info-banner--danger">
-            <AlertCircle className="escrow-info-icon" size={16} />
+            <AlertCircleIcon className="escrow-info-icon" size={16} />
             <p className="escrow-info-text">
               A dispute will freeze the escrow and require resolution through the dispute resolver contract.
             </p>
@@ -241,7 +250,7 @@ export const EscrowSystem = ({
     return (
       <div className="escrow-card">
         <div className="escrow-empty">
-          <Lock className="escrow-empty-icon" />
+          <LockIcon className="escrow-empty-icon" />
           <h3 className="escrow-empty-title">No Active Escrow</h3>
           <p className="escrow-empty-desc">Create an escrow contract to secure payments</p>
           {onCreateEscrow && (
