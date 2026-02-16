@@ -267,3 +267,53 @@ export const FilterIcon: React.FC<IconProps> = ({
         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
     </svg>
 );
+
+/**
+ * ChevronDownIcon — downward-pointing chevron for dropdowns and expand actions
+ */
+export const ChevronDownIcon: React.FC<IconProps> = ({
+    size = 24,
+    className = '',
+    color = 'currentColor',
+}) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden="true"
+    >
+        <polyline points="6 9 12 15 18 9" />
+    </svg>
+);
+
+/**
+ * ChevronUpIcon — upward-pointing chevron for collapse and close actions
+ */
+export const ChevronUpIcon: React.FC<IconProps> = ({
+    size = 24,
+    className = '',
+    color = 'currentColor',
+}) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden="true"
+    >
+        <polyline points="18 15 12 9 6 15" />
+    </svg>
+);
