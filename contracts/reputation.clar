@@ -4,6 +4,9 @@
 (define-constant err-not-found (err u101))
 (define-constant err-invalid-score (err u102))
 
+;; Map of contract principals authorized to call reputation update functions
+(define-map trusted-callers { caller: principal } { is-trusted: bool })
+
 (define-data-var total-researchers uint u0)
 
 (define-map researcher-profiles
