@@ -6,6 +6,9 @@
 
 (define-data-var total-researchers uint u0)
 
+;; On-chain list of registered researcher principals for enumeration
+(define-data-var researcher-list (list 200 principal) (list))
+
 (define-map researcher-profiles
     { researcher: principal }
     {
