@@ -185,3 +185,132 @@ Clarinet.test({
     }
 });
 
+Clarinet.test({
+    name: "Owner can add and query a trusted caller",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const trustedContract = accounts.get('wallet_1')!;
+
+        // Add trusted caller
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(trustedContract.address)],
+                deployer.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+
+        // Verify the caller is now trusted
+        let result = chain.callReadOnlyFn(
+            'reputation',
+            'is-trusted-caller',
+            [types.principal(trustedContract.address)],
+            deployer.address
+        );
+
+        assertEquals(result.result, types.bool(true));
+    }
+});
+
+Clarinet.test({
+    name: "Owner can remove a trusted caller",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const trustedContract = accounts.get('wallet_1')!;
+
+        // Add then remove trusted caller
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(trustedContract.address)],
+                deployer.address
+            )
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'remove-trusted-caller',
+                [types.principal(trustedContract.address)],
+                deployer.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+
+        // Verify the caller is no longer trusted
+        let result = chain.callReadOnlyFn(
+            'reputation',
+            'is-trusted-caller',
+            [types.principal(trustedContract.address)],
+            deployer.address
+        );
+
+        assertEquals(result.result, types.bool(false));
+    }
+});
+
+Clarinet.test({
+    name: "Non-owner cannot add a trusted caller",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const unauthorized = accounts.get('wallet_1')!;
+        const target = accounts.get('wallet_2')!;
+
+        // Non-owner tries to add trusted caller - should fail with err u100
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(target.address)],
+                unauthorized.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(100);
+    }
+});
+
+Clarinet.test({
+    name: "Non-owner cannot remove a trusted caller",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const unauthorized = accounts.get('wallet_1')!;
+        const target = accounts.get('wallet_2')!;
+
+        // Owner adds a trusted caller
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(target.address)],
+                deployer.address
+            )
+        ]);
+
+        // Non-owner tries to remove - should fail with err u100
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'remove-trusted-caller',
+                [types.principal(target.address)],
+                unauthorized.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(100);
+
+        // Verify caller is still trusted
+        let result = chain.callReadOnlyFn(
+            'reputation',
+            'is-trusted-caller',
+            [types.principal(target.address)],
+            deployer.address
+        );
+
+        assertEquals(result.result, types.bool(true));
+    }
+});
