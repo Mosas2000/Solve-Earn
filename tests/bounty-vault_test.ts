@@ -668,3 +668,295 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(202);
     }
 });
+
+Clarinet.test({
+    name: "Approve-submission updates researcher reputation score",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Step 1: Register researcher in reputation contract
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'register-researcher',
+                [],
+                researcher.address
+            )
+        ]);
+
+        // Step 2: Authorize the bounty-vault contract as a trusted caller
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(`${deployer.address}.bounty-vault`)],
+                deployer.address
+            )
+        ]);
+
+        // Step 3: Create bounty and submit vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Reputation Integration Test"),
+                    types.utf8("Test reputation updates on approval"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            ),
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(50))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Step 4: Approve the submission
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk();
+
+        // Step 5: Verify reputation was updated
+        let profileResult = chain.callReadOnlyFn(
+            'reputation',
+            'get-researcher-profile',
+            [types.principal(researcher.address)],
+            researcher.address
+        );
+
+        const profile = profileResult.result.expectSome().expectTuple();
+        assertEquals(profile['total-submissions'], types.uint(1));
+        assertEquals(profile['accepted-submissions'], types.uint(1));
+        assertEquals(profile['rejected-submissions'], types.uint(0));
+        assertEquals(profile['total-earned'], types.uint(1000000));
+        // Initial score 50 + high severity boost 15 = 65
+        assertEquals(profile['reputation-score'], types.uint(65));
+    }
+});
+
+Clarinet.test({
+    name: "Reject-submission updates researcher reputation score",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Step 1: Register researcher in reputation contract
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'register-researcher',
+                [],
+                researcher.address
+            )
+        ]);
+
+        // Step 2: Authorize the bounty-vault contract as a trusted caller
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(`${deployer.address}.bounty-vault`)],
+                deployer.address
+            )
+        ]);
+
+        // Step 3: Create bounty and submit vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Rejection Rep Test"),
+                    types.utf8("Test reputation decrease on rejection"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            ),
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("medium"),
+                    types.buff(new Uint8Array(32).fill(51))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Step 4: Reject the submission
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'reject-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectOk();
+
+        // Step 5: Verify reputation was updated
+        let profileResult = chain.callReadOnlyFn(
+            'reputation',
+            'get-researcher-profile',
+            [types.principal(researcher.address)],
+            researcher.address
+        );
+
+        const profile = profileResult.result.expectSome().expectTuple();
+        assertEquals(profile['total-submissions'], types.uint(1));
+        assertEquals(profile['accepted-submissions'], types.uint(0));
+        assertEquals(profile['rejected-submissions'], types.uint(1));
+        assertEquals(profile['total-earned'], types.uint(0));
+        // Initial score 50 - rejection penalty 5 = 45
+        assertEquals(profile['reputation-score'], types.uint(45));
+    }
+});
+
+Clarinet.test({
+    name: "Full integration: register, submit, approve, verify reputation and success rate",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Register researcher
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'register-researcher',
+                [],
+                researcher.address
+            )
+        ]);
+
+        // Authorize bounty-vault as trusted caller
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(`${deployer.address}.bounty-vault`)],
+                deployer.address
+            )
+        ]);
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Full Integration Test"),
+                    types.utf8("End-to-end reputation lifecycle"),
+                    types.uint(10000000),
+                    types.uint(5000000),
+                    types.uint(3000000),
+                    types.uint(1500000),
+                    types.uint(500000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Submit and approve a critical vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(new Uint8Array(32).fill(60))
+                ],
+                researcher.address
+            )
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        // Submit and reject a low severity one
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("low"),
+                    types.buff(new Uint8Array(32).fill(61))
+                ],
+                researcher.address
+            )
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'reject-submission',
+                [types.uint(2)],
+                project.address
+            )
+        ]);
+
+        // Verify final reputation profile
+        let profileResult = chain.callReadOnlyFn(
+            'reputation',
+            'get-researcher-profile',
+            [types.principal(researcher.address)],
+            researcher.address
+        );
+
+        const profile = profileResult.result.expectSome().expectTuple();
+        assertEquals(profile['total-submissions'], types.uint(2));
+        assertEquals(profile['accepted-submissions'], types.uint(1));
+        assertEquals(profile['rejected-submissions'], types.uint(1));
+        assertEquals(profile['total-earned'], types.uint(5000000));
+        // Initial 50 + critical boost 20 - rejection penalty 5 = 65
+        assertEquals(profile['reputation-score'], types.uint(65));
+
+        // Verify success rate: 1 accepted out of 2 total = 50%
+        let successRate = chain.callReadOnlyFn(
+            'reputation',
+            'calculate-success-rate',
+            [types.principal(researcher.address)],
+            researcher.address
+        );
+
+        successRate.result.expectOk().expectUint(50);
+    }
+});

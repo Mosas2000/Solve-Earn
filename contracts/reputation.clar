@@ -4,6 +4,9 @@
 (define-constant err-not-found (err u101))
 (define-constant err-invalid-score (err u102))
 
+;; Map of contract principals authorized to call reputation update functions
+(define-map trusted-callers { caller: principal } { is-trusted: bool })
+
 (define-data-var total-researchers uint u0)
 
 ;; On-chain list of registered researcher principals for enumeration
@@ -70,7 +73,7 @@
             (score-boost (severity-to-score-boost severity))
             (new-score (+ (get reputation-score profile) score-boost))
         )
-        (asserts! (is-eq contract-caller contract-owner) err-unauthorized)
+        (asserts! (is-authorized-caller contract-caller) err-unauthorized)
         (map-set researcher-profiles
             { researcher: researcher }
             (merge profile {
@@ -93,7 +96,7 @@
                 u0
             ))
         )
-        (asserts! (is-eq contract-caller contract-owner) err-unauthorized)
+        (asserts! (is-authorized-caller contract-caller) err-unauthorized)
         (map-set researcher-profiles
             { researcher: researcher }
             (merge profile {
@@ -117,6 +120,12 @@
             )
         )
     )
+)
+
+;; Authorization check: allows the contract deployer or any trusted caller
+(define-private (is-authorized-caller (caller principal))
+    (or (is-eq caller contract-owner)
+        (default-to false (get is-trusted (map-get? trusted-callers { caller: caller }))))
 )
 
 (define-read-only (get-total-researchers)
@@ -143,4 +152,25 @@
         )
         err-not-found
     )
+)
+
+;; Owner-only: authorize a contract principal to call reputation updates
+(define-public (set-trusted-caller (caller principal))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (ok (map-set trusted-callers { caller: caller } { is-trusted: true }))
+    )
+)
+
+;; Owner-only: revoke a contract principal's authorization
+(define-public (remove-trusted-caller (caller principal))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (ok (map-delete trusted-callers { caller: caller }))
+    )
+)
+
+;; Check whether a given principal is a trusted caller
+(define-read-only (is-trusted-caller (caller principal))
+    (default-to false (get is-trusted (map-get? trusted-callers { caller: caller })))
 )
