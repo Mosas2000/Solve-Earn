@@ -67,7 +67,7 @@
             (score-boost (severity-to-score-boost severity))
             (new-score (+ (get reputation-score profile) score-boost))
         )
-        (asserts! (is-eq contract-caller contract-owner) err-unauthorized)
+        (asserts! (is-authorized-caller contract-caller) err-unauthorized)
         (map-set researcher-profiles
             { researcher: researcher }
             (merge profile {
@@ -90,7 +90,7 @@
                 u0
             ))
         )
-        (asserts! (is-eq contract-caller contract-owner) err-unauthorized)
+        (asserts! (is-authorized-caller contract-caller) err-unauthorized)
         (map-set researcher-profiles
             { researcher: researcher }
             (merge profile {
@@ -114,6 +114,12 @@
             )
         )
     )
+)
+
+;; Authorization check: allows the contract deployer or any trusted caller
+(define-private (is-authorized-caller (caller principal))
+    (or (is-eq caller contract-owner)
+        (default-to false (get is-trusted (map-get? trusted-callers { caller: caller }))))
 )
 
 (define-read-only (get-total-researchers)
