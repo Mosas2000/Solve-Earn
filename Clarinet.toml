@@ -14,7 +14,7 @@ path = "contracts/reputation.clar"
 
 [contracts.bounty-vault]
 path = "contracts/bounty-vault.clar"
-depends_on = ["reputation"]
+depends_on = ["reputation", "dispute-resolver"]
 
 [contracts.dispute-resolver]
 path = "contracts/dispute-resolver.clar"
