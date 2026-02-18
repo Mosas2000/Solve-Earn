@@ -1127,3 +1127,78 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(200);
     }
 });
+
+Clarinet.test({
+    name: "High-value approval requires arbiter confirmation before proceeding",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Set approval delay low and threshold low to trigger arbiter requirement
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(2)],
+                deployer.address
+            ),
+            Tx.contractCall(
+                'bounty-vault',
+                'set-high-value-threshold',
+                [types.uint(500000)],
+                deployer.address
+            )
+        ]);
+
+        // Create bounty with critical reward above the lowered threshold
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("High Value Test"),
+                    types.utf8("Testing arbiter requirement"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Researcher submits critical vulnerability (reward = 2000000 > threshold 500000)
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(new Uint8Array(32).fill(80))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Mine blocks to satisfy approval delay
+        for (let i = 0; i < 3; i++) {
+            chain.mineEmptyBlock();
+        }
+
+        // Try to approve without arbiter confirmation - should fail with err u209
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(209);
+    }
+});
