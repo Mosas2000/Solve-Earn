@@ -1202,3 +1202,124 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(209);
     }
 });
+
+Clarinet.test({
+    name: "Arbiter can confirm and unlock high-value approval",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+        const arbiter = accounts.get('wallet_4')!;
+
+        // Configure: low delay and low threshold
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(2)],
+                deployer.address
+            ),
+            Tx.contractCall(
+                'bounty-vault',
+                'set-high-value-threshold',
+                [types.uint(500000)],
+                deployer.address
+            )
+        ]);
+
+        // Register researcher and register arbiter
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'register-researcher',
+                [],
+                researcher.address
+            ),
+            Tx.contractCall(
+                'dispute-resolver',
+                'register-arbiter',
+                [],
+                arbiter.address
+            )
+        ]);
+
+        // Authorize bounty-vault as trusted caller for reputation
+        chain.mineBlock([
+            Tx.contractCall(
+                'reputation',
+                'set-trusted-caller',
+                [types.principal(`${deployer.address}.bounty-vault`)],
+                deployer.address
+            )
+        ]);
+
+        // Create bounty
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Arbiter Flow Test"),
+                    types.utf8("Full arbiter confirmation lifecycle"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        // Researcher submits critical vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("critical"),
+                    types.buff(new Uint8Array(32).fill(90))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Arbiter confirms the submission
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'confirm-approval',
+                [types.uint(1)],
+                arbiter.address
+            )
+        ]);
+        block.receipts[0].result.expectOk().expectBool(true);
+
+        // Mine blocks to satisfy approval delay
+        for (let i = 0; i < 3; i++) {
+            chain.mineEmptyBlock();
+        }
+
+        // Now project can approve the high-value submission
+        block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+        block.receipts[0].result.expectOk().expectBool(true);
+
+        // Verify confirmation is recorded
+        let confirmation = chain.callReadOnlyFn(
+            'bounty-vault',
+            'get-approval-confirmation',
+            [types.uint(1)],
+            deployer.address
+        );
+        confirmation.result.expectSome();
+    }
+});
