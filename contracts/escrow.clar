@@ -120,3 +120,27 @@
         (ok current-count)
     )
 )
+
+;; Activate an escrow contract. Called by the worker to accept the terms.
+;; The escrow must be in 'pending' status.
+(define-public (activate-escrow (escrow-id uint))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+        )
+        (asserts! (is-eq tx-sender (get worker escrow)) err-unauthorized)
+        (asserts! (is-eq (get status escrow) "pending") err-invalid-status)
+        (asserts! (< block-height (get deadline escrow)) err-deadline-passed)
+        (map-set escrows
+            { escrow-id: escrow-id }
+            (merge escrow { status: "active" })
+        )
+        (print {
+            event: "escrow-activated",
+            escrow-id: escrow-id,
+            worker: tx-sender,
+            block-height: block-height
+        })
+        (ok true)
+    )
+)
