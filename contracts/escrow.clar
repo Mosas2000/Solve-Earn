@@ -259,3 +259,17 @@
         (ok refund-amount)
     )
 )
+
+;; Read-only functions for querying escrow state
+
+(define-read-only (get-escrow (escrow-id uint))
+    (map-get? escrows { escrow-id: escrow-id })
+)
+
+(define-read-only (get-milestone (escrow-id uint) (milestone-index uint))
+    (map-get? milestones { escrow-id: escrow-id, milestone-index: milestone-index })
+)
+
+(define-read-only (get-total-escrows)
+    (ok (var-get escrow-nonce))
+)
