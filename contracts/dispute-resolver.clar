@@ -104,3 +104,12 @@
 (define-read-only (get-dispute (dispute-id uint))
     (map-get? disputes { dispute-id: dispute-id })
 )
+
+;; Returns whether the given principal is a registered and active arbiter.
+;; Used by bounty-vault to validate arbiter co-signing on high-value approvals.
+(define-read-only (is-registered-arbiter (who principal))
+    (match (map-get? arbiters { arbiter: who })
+        arbiter-data (get is-active arbiter-data)
+        false
+    )
+)
