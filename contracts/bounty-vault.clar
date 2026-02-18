@@ -198,7 +198,13 @@
             (reward (get reward-amount submission))
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        ;; Enforce cooling period: cannot approve until approval-delay blocks after submission
+        (asserts! (>= block-height (+ (get submitted-at submission) (var-get approval-delay))) err-approval-too-early)
         (asserts! (>= (get remaining-pool bounty) reward) err-insufficient-funds)
+        ;; For high-value rewards, require an arbiter to have confirmed first
+        (asserts! (or (<= reward (var-get high-value-threshold))
+                      (is-some (map-get? approval-confirmations { submission-id: submission-id })))
+                  err-arbiter-required)
         (try! (as-contract (stx-transfer? reward tx-sender (get researcher submission))))
         (print {
             event: "reward-payment",
