@@ -18,6 +18,8 @@
 
 (define-data-var bounty-nonce uint u0)
 (define-data-var submission-nonce uint u0)
+(define-data-var approval-delay uint DEFAULT-APPROVAL-DELAY)
+(define-data-var high-value-threshold uint DEFAULT-HIGH-VALUE-THRESHOLD)
 
 (define-map bounties
     { bounty-id: uint }
