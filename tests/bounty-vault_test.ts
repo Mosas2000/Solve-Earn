@@ -1323,3 +1323,64 @@ Clarinet.test({
         confirmation.result.expectSome();
     }
 });
+
+Clarinet.test({
+    name: "Project owner cannot act as arbiter on their own bounty submissions",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Project owner registers as arbiter
+        chain.mineBlock([
+            Tx.contractCall(
+                'dispute-resolver',
+                'register-arbiter',
+                [],
+                project.address
+            )
+        ]);
+
+        // Create bounty and get a submission
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Self-Arbiter Test"),
+                    types.utf8("Owner should not be able to confirm"),
+                    types.uint(5000000),
+                    types.uint(2000000),
+                    types.uint(1000000),
+                    types.uint(500000),
+                    types.uint(250000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("high"),
+                    types.buff(new Uint8Array(32).fill(95))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Project owner tries to confirm their own bounty's submission - should fail
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'confirm-approval',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+        block.receipts[0].result.expectErr().expectUint(200);
+    }
+});
