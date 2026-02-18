@@ -144,3 +144,43 @@
         (ok true)
     )
 )
+
+;; Release payment for a specific milestone. Only the employer may release.
+;; The escrow must be active and the milestone must be in 'pending' status.
+;; Transfers the milestone amount from the contract to the worker.
+(define-public (release-milestone (escrow-id uint) (milestone-index uint))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+            (milestone (unwrap! (map-get? milestones { escrow-id: escrow-id, milestone-index: milestone-index }) err-milestone-not-found))
+            (amount (get amount milestone))
+        )
+        (asserts! (is-eq tx-sender (get employer escrow)) err-unauthorized)
+        (asserts! (is-eq (get status escrow) "active") err-invalid-status)
+        (asserts! (is-eq (get status milestone) "pending") err-already-released)
+        ;; Transfer milestone amount to worker
+        (try! (as-contract (stx-transfer? amount tx-sender (get worker escrow))))
+        (map-set milestones
+            { escrow-id: escrow-id, milestone-index: milestone-index }
+            (merge milestone {
+                status: "released",
+                released-at: (some block-height)
+            })
+        )
+        (map-set escrows
+            { escrow-id: escrow-id }
+            (merge escrow {
+                released-amount: (+ (get released-amount escrow) amount)
+            })
+        )
+        (print {
+            event: "milestone-released",
+            escrow-id: escrow-id,
+            milestone-index: milestone-index,
+            amount: amount,
+            worker: (get worker escrow),
+            block-height: block-height
+        })
+        (ok true)
+    )
+)
