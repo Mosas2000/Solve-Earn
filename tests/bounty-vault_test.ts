@@ -1027,3 +1027,55 @@ Clarinet.test({
         successRate.result.expectOk().expectUint(50);
     }
 });
+
+Clarinet.test({
+    name: "Timelock prevents premature approval within cooldown period",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const project = accounts.get('wallet_1')!;
+        const researcher = accounts.get('wallet_2')!;
+
+        // Create bounty and submit vulnerability
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'create-bounty',
+                [
+                    types.utf8("Timelock Test Bounty"),
+                    types.utf8("Testing approval cooldown enforcement"),
+                    types.uint(3000000),
+                    types.uint(1500000),
+                    types.uint(800000),
+                    types.uint(400000),
+                    types.uint(200000),
+                    types.uint(14400)
+                ],
+                project.address
+            )
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'submit-vulnerability',
+                [
+                    types.uint(1),
+                    types.ascii("low"),
+                    types.buff(new Uint8Array(32).fill(70))
+                ],
+                researcher.address
+            )
+        ]);
+
+        // Immediately try to approve without waiting - should fail with err u208
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'approve-submission',
+                [types.uint(1)],
+                project.address
+            )
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(208);
+    }
+});
