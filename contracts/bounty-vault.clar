@@ -64,6 +64,16 @@
     { submission-id: uint }
 )
 
+;; Tracks arbiter confirmations for high-value submission approvals
+;; An independent arbiter must co-sign before the project owner can approve
+(define-map approval-confirmations
+    { submission-id: uint }
+    {
+        arbiter: principal,
+        confirmed-at: uint
+    }
+)
+
 (define-public (create-bounty
     (title (string-utf8 50))
     (description (string-utf8 200))
