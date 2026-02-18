@@ -8,7 +8,13 @@
 (define-constant err-duplicate-hash (err u205))
 (define-constant err-max-submissions-reached (err u206))
 (define-constant err-self-submission (err u207))
+(define-constant err-approval-too-early (err u208))
+(define-constant err-arbiter-required (err u209))
+(define-constant err-not-registered-arbiter (err u210))
+(define-constant err-already-confirmed (err u211))
 (define-constant MAX-SUBMISSIONS-PER-RESEARCHER u3)
+(define-constant DEFAULT-APPROVAL-DELAY u10)
+(define-constant DEFAULT-HIGH-VALUE-THRESHOLD u5000000)
 
 (define-data-var bounty-nonce uint u0)
 (define-data-var submission-nonce uint u0)
