@@ -1079,3 +1079,51 @@ Clarinet.test({
         block.receipts[0].result.expectErr().expectUint(208);
     }
 });
+
+Clarinet.test({
+    name: "Contract owner can configure approval delay via governance",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const unauthorized = accounts.get('wallet_3')!;
+
+        // Read default delay
+        let delayResult = chain.callReadOnlyFn(
+            'bounty-vault',
+            'get-approval-delay',
+            [],
+            deployer.address
+        );
+        delayResult.result.expectOk().expectUint(10);
+
+        // Owner updates delay
+        let block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(5)],
+                deployer.address
+            )
+        ]);
+        block.receipts[0].result.expectOk().expectUint(5);
+
+        // Verify updated delay
+        delayResult = chain.callReadOnlyFn(
+            'bounty-vault',
+            'get-approval-delay',
+            [],
+            deployer.address
+        );
+        delayResult.result.expectOk().expectUint(5);
+
+        // Non-owner cannot change delay
+        block = chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(1)],
+                unauthorized.address
+            )
+        ]);
+        block.receipts[0].result.expectErr().expectUint(200);
+    }
+});
