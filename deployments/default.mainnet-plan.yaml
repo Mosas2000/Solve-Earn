@@ -16,17 +16,17 @@ plan:
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
-            contract-name: bounty-vault
-            expected-sender: SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T
-            cost: 64840
-            path: contracts/bounty-vault.clar
-            anchor-block-only: true
-            clarity-version: 2
-        - contract-publish:
             contract-name: dispute-resolver
             expected-sender: SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T
             cost: 29910
             path: contracts/dispute-resolver.clar
+            anchor-block-only: true
+            clarity-version: 2
+        - contract-publish:
+            contract-name: bounty-vault
+            expected-sender: SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T
+            cost: 64840
+            path: contracts/bounty-vault.clar
             anchor-block-only: true
             clarity-version: 2
       epoch: "2.1"

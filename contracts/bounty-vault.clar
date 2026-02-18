@@ -8,10 +8,18 @@
 (define-constant err-duplicate-hash (err u205))
 (define-constant err-max-submissions-reached (err u206))
 (define-constant err-self-submission (err u207))
+(define-constant err-approval-too-early (err u208))
+(define-constant err-arbiter-required (err u209))
+(define-constant err-not-registered-arbiter (err u210))
+(define-constant err-already-confirmed (err u211))
 (define-constant MAX-SUBMISSIONS-PER-RESEARCHER u3)
+(define-constant DEFAULT-APPROVAL-DELAY u10)
+(define-constant DEFAULT-HIGH-VALUE-THRESHOLD u5000000)
 
 (define-data-var bounty-nonce uint u0)
 (define-data-var submission-nonce uint u0)
+(define-data-var approval-delay uint DEFAULT-APPROVAL-DELAY)
+(define-data-var high-value-threshold uint DEFAULT-HIGH-VALUE-THRESHOLD)
 
 (define-map bounties
     { bounty-id: uint }
@@ -54,6 +62,16 @@
 (define-map submitted-hashes
     { bounty-id: uint, report-hash: (buff 32) }
     { submission-id: uint }
+)
+
+;; Tracks arbiter confirmations for high-value submission approvals
+;; An independent arbiter must co-sign before the project owner can approve
+(define-map approval-confirmations
+    { submission-id: uint }
+    {
+        arbiter: principal,
+        confirmed-at: uint
+    }
 )
 
 (define-public (create-bounty
@@ -180,7 +198,13 @@
             (reward (get reward-amount submission))
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        ;; Enforce cooling period: cannot approve until approval-delay blocks after submission
+        (asserts! (>= block-height (+ (get submitted-at submission) (var-get approval-delay))) err-approval-too-early)
         (asserts! (>= (get remaining-pool bounty) reward) err-insufficient-funds)
+        ;; For high-value rewards, require an arbiter to have confirmed first
+        (asserts! (or (<= reward (var-get high-value-threshold))
+                      (is-some (map-get? approval-confirmations { submission-id: submission-id })))
+                  err-arbiter-required)
         (try! (as-contract (stx-transfer? reward tx-sender (get researcher submission))))
         (print {
             event: "reward-payment",
@@ -221,6 +245,41 @@
         ;; Update researcher reputation on rejection
         (try! (contract-call? .reputation update-reputation-on-rejection
             (get researcher submission)))
+        (ok true)
+    )
+)
+
+;; Arbiter confirms that a high-value submission has been independently reviewed.
+;; Only registered arbiters from the dispute-resolver contract may call this.
+;; The arbiter must not be the bounty project owner or the submission researcher.
+(define-public (confirm-approval (submission-id uint))
+    (let
+        (
+            (submission (unwrap! (map-get? submissions { submission-id: submission-id }) err-bounty-not-found))
+            (bounty-id (get bounty-id submission))
+            (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
+        )
+        ;; Must be a registered arbiter in the dispute-resolver contract
+        (asserts! (contract-call? .dispute-resolver is-registered-arbiter tx-sender) err-not-registered-arbiter)
+        ;; Arbiter cannot be the project owner (prevents self-dealing)
+        (asserts! (not (is-eq tx-sender (get project bounty))) err-unauthorized)
+        ;; Arbiter cannot be the submitting researcher
+        (asserts! (not (is-eq tx-sender (get researcher submission))) err-unauthorized)
+        ;; Prevent duplicate confirmations
+        (asserts! (is-none (map-get? approval-confirmations { submission-id: submission-id })) err-already-confirmed)
+        (map-set approval-confirmations
+            { submission-id: submission-id }
+            {
+                arbiter: tx-sender,
+                confirmed-at: block-height
+            }
+        )
+        (print {
+            event: "approval-confirmed",
+            submission-id: submission-id,
+            arbiter: tx-sender,
+            block-height: block-height
+        })
         (ok true)
     )
 )
@@ -268,4 +327,34 @@
 
 (define-read-only (get-total-submissions)
     (ok (var-get submission-nonce))
+)
+
+;; Governance: set the minimum block delay between submission and approval
+(define-public (set-approval-delay (new-delay uint))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (var-set approval-delay new-delay)
+        (ok new-delay)
+    )
+)
+
+;; Governance: set the reward threshold above which arbiter confirmation is required
+(define-public (set-high-value-threshold (new-threshold uint))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (var-set high-value-threshold new-threshold)
+        (ok new-threshold)
+    )
+)
+
+(define-read-only (get-approval-delay)
+    (ok (var-get approval-delay))
+)
+
+(define-read-only (get-high-value-threshold)
+    (ok (var-get high-value-threshold))
+)
+
+(define-read-only (get-approval-confirmation (submission-id uint))
+    (map-get? approval-confirmations { submission-id: submission-id })
 )
