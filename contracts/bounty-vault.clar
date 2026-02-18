@@ -249,6 +249,41 @@
     )
 )
 
+;; Arbiter confirms that a high-value submission has been independently reviewed.
+;; Only registered arbiters from the dispute-resolver contract may call this.
+;; The arbiter must not be the bounty project owner or the submission researcher.
+(define-public (confirm-approval (submission-id uint))
+    (let
+        (
+            (submission (unwrap! (map-get? submissions { submission-id: submission-id }) err-bounty-not-found))
+            (bounty-id (get bounty-id submission))
+            (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
+        )
+        ;; Must be a registered arbiter in the dispute-resolver contract
+        (asserts! (contract-call? .dispute-resolver is-registered-arbiter tx-sender) err-not-registered-arbiter)
+        ;; Arbiter cannot be the project owner (prevents self-dealing)
+        (asserts! (not (is-eq tx-sender (get project bounty))) err-unauthorized)
+        ;; Arbiter cannot be the submitting researcher
+        (asserts! (not (is-eq tx-sender (get researcher submission))) err-unauthorized)
+        ;; Prevent duplicate confirmations
+        (asserts! (is-none (map-get? approval-confirmations { submission-id: submission-id })) err-already-confirmed)
+        (map-set approval-confirmations
+            { submission-id: submission-id }
+            {
+                arbiter: tx-sender,
+                confirmed-at: block-height
+            }
+        )
+        (print {
+            event: "approval-confirmed",
+            submission-id: submission-id,
+            arbiter: tx-sender,
+            block-height: block-height
+        })
+        (ok true)
+    )
+)
+
 (define-public (close-bounty (bounty-id uint))
     (let
         (
