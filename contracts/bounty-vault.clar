@@ -328,3 +328,33 @@
 (define-read-only (get-total-submissions)
     (ok (var-get submission-nonce))
 )
+
+;; Governance: set the minimum block delay between submission and approval
+(define-public (set-approval-delay (new-delay uint))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (var-set approval-delay new-delay)
+        (ok new-delay)
+    )
+)
+
+;; Governance: set the reward threshold above which arbiter confirmation is required
+(define-public (set-high-value-threshold (new-threshold uint))
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (var-set high-value-threshold new-threshold)
+        (ok new-threshold)
+    )
+)
+
+(define-read-only (get-approval-delay)
+    (ok (var-get approval-delay))
+)
+
+(define-read-only (get-high-value-threshold)
+    (ok (var-get high-value-threshold))
+)
+
+(define-read-only (get-approval-confirmation (submission-id uint))
+    (map-get? approval-confirmations { submission-id: submission-id })
+)
