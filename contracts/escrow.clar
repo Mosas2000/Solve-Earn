@@ -87,3 +87,36 @@
         (ok escrow-id)
     )
 )
+
+;; Add a milestone to an existing escrow. Only the employer may add milestones.
+;; The escrow must be in 'pending' status (not yet activated).
+(define-public (add-milestone
+    (escrow-id uint)
+    (description (string-utf8 100))
+    (amount uint)
+)
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+            (current-count (get milestone-count escrow))
+        )
+        (asserts! (is-eq tx-sender (get employer escrow)) err-unauthorized)
+        (asserts! (is-eq (get status escrow) "pending") err-invalid-status)
+        (asserts! (< current-count MAX-MILESTONES) err-milestone-limit)
+        (asserts! (> amount u0) err-insufficient-funds)
+        (map-set milestones
+            { escrow-id: escrow-id, milestone-index: current-count }
+            {
+                description: description,
+                amount: amount,
+                status: "pending",
+                released-at: none
+            }
+        )
+        (map-set escrows
+            { escrow-id: escrow-id }
+            (merge escrow { milestone-count: (+ current-count u1) })
+        )
+        (ok current-count)
+    )
+)
