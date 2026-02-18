@@ -75,8 +75,19 @@ Clarinet.test({
 Clarinet.test({
     name: "Project can approve and pay submission",
     async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
         const project = accounts.get('wallet_1')!;
         const researcher = accounts.get('wallet_2')!;
+
+        // Reduce approval delay for test speed
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(2)],
+                deployer.address
+            )
+        ]);
 
         let block = chain.mineBlock([
             Tx.contractCall(
@@ -105,6 +116,11 @@ Clarinet.test({
                 researcher.address
             )
         ]);
+
+        // Mine blocks to satisfy approval delay
+        for (let i = 0; i < 3; i++) {
+            chain.mineEmptyBlock();
+        }
 
         block = chain.mineBlock([
             Tx.contractCall(
