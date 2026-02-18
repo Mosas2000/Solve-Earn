@@ -184,3 +184,78 @@
         (ok true)
     )
 )
+
+;; Either party can raise a dispute on an active escrow.
+;; This freezes the escrow until the dispute-resolver contract handles it.
+(define-public (dispute-escrow (escrow-id uint))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+        )
+        (asserts! (or (is-eq tx-sender (get employer escrow))
+                      (is-eq tx-sender (get worker escrow))) err-unauthorized)
+        (asserts! (is-eq (get status escrow) "active") err-invalid-status)
+        (map-set escrows
+            { escrow-id: escrow-id }
+            (merge escrow { status: "disputed" })
+        )
+        (print {
+            event: "escrow-disputed",
+            escrow-id: escrow-id,
+            initiator: tx-sender,
+            block-height: block-height
+        })
+        (ok true)
+    )
+)
+
+;; Mark the escrow as completed. Called by the employer after all milestones
+;; have been released, or to finalize a non-milestone escrow.
+(define-public (complete-escrow (escrow-id uint))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+        )
+        (asserts! (is-eq tx-sender (get employer escrow)) err-unauthorized)
+        (asserts! (is-eq (get status escrow) "active") err-invalid-status)
+        (map-set escrows
+            { escrow-id: escrow-id }
+            (merge escrow { status: "completed" })
+        )
+        (print {
+            event: "escrow-completed",
+            escrow-id: escrow-id,
+            block-height: block-height
+        })
+        (ok true)
+    )
+)
+
+;; Refund remaining funds to the employer. Only callable by the employer
+;; when the escrow is still pending (worker never accepted) or deadline passed.
+(define-public (refund-escrow (escrow-id uint))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+            (refund-amount (- (get total-amount escrow) (get released-amount escrow)))
+        )
+        (asserts! (is-eq tx-sender (get employer escrow)) err-unauthorized)
+        (asserts! (or (is-eq (get status escrow) "pending")
+                      (>= block-height (get deadline escrow))) err-invalid-status)
+        (if (> refund-amount u0)
+            (try! (as-contract (stx-transfer? refund-amount tx-sender (get employer escrow))))
+            true
+        )
+        (map-set escrows
+            { escrow-id: escrow-id }
+            (merge escrow { status: "refunded" })
+        )
+        (print {
+            event: "escrow-refunded",
+            escrow-id: escrow-id,
+            amount: refund-amount,
+            block-height: block-height
+        })
+        (ok refund-amount)
+    )
+)
