@@ -581,9 +581,20 @@ Clarinet.test({
 Clarinet.test({
     name: "Prevents approval when remaining pool is insufficient",
     async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
         const project = accounts.get('wallet_1')!;
         const researcher1 = accounts.get('wallet_2')!;
         const researcher2 = accounts.get('wallet_3')!;
+
+        // Reduce approval delay for test speed
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(2)],
+                deployer.address
+            )
+        ]);
 
         // Create bounty with minimal pool (just enough for one critical reward)
         chain.mineBlock([
@@ -618,6 +629,11 @@ Clarinet.test({
             )
         ]);
 
+        // Mine blocks to satisfy approval delay
+        for (let i = 0; i < 3; i++) {
+            chain.mineEmptyBlock();
+        }
+
         // Approve first submission (depletes pool)
         chain.mineBlock([
             Tx.contractCall(
@@ -641,6 +657,11 @@ Clarinet.test({
                 researcher2.address
             )
         ]);
+
+        // Mine blocks to satisfy approval delay for second submission
+        for (let i = 0; i < 3; i++) {
+            chain.mineEmptyBlock();
+        }
 
         // Try to approve second when pool is depleted - should fail with err u202
         let block = chain.mineBlock([
@@ -692,6 +713,16 @@ Clarinet.test({
         const project = accounts.get('wallet_1')!;
         const researcher = accounts.get('wallet_2')!;
 
+        // Reduce approval delay for test speed
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(2)],
+                deployer.address
+            )
+        ]);
+
         // Step 1: Register researcher in reputation contract
         chain.mineBlock([
             Tx.contractCall(
@@ -740,6 +771,11 @@ Clarinet.test({
                 researcher.address
             )
         ]);
+
+        // Mine blocks to satisfy approval delay
+        for (let i = 0; i < 3; i++) {
+            chain.mineEmptyBlock();
+        }
 
         // Step 4: Approve the submission
         let block = chain.mineBlock([
@@ -864,6 +900,16 @@ Clarinet.test({
         const project = accounts.get('wallet_1')!;
         const researcher = accounts.get('wallet_2')!;
 
+        // Reduce approval delay for test speed
+        chain.mineBlock([
+            Tx.contractCall(
+                'bounty-vault',
+                'set-approval-delay',
+                [types.uint(2)],
+                deployer.address
+            )
+        ]);
+
         // Register researcher
         chain.mineBlock([
             Tx.contractCall(
@@ -916,6 +962,11 @@ Clarinet.test({
                 researcher.address
             )
         ]);
+
+        // Mine blocks to satisfy approval delay
+        for (let i = 0; i < 3; i++) {
+            chain.mineEmptyBlock();
+        }
 
         chain.mineBlock([
             Tx.contractCall(
