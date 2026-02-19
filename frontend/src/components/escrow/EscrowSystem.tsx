@@ -31,8 +31,12 @@ export interface Milestone {
 
 interface EscrowSystemProps {
   contract?: EscrowContract;
+  connectedAddress?: string;
   onCreateEscrow?: (data: CreateEscrowData) => Promise<void>;
+  onAddMilestone?: (escrowId: string, description: string, amount: string) => Promise<void>;
+  onActivateEscrow?: (escrowId: string) => Promise<void>;
   onReleasePayment?: (escrowId: string) => Promise<void>;
+  onCompleteEscrow?: (escrowId: string) => Promise<void>;
   onDispute?: (escrowId: string, reason: string) => Promise<void>;
 }
 
@@ -74,11 +78,15 @@ const statusConfig = {
 
 export const EscrowSystem = ({
   contract,
+  connectedAddress,
   onCreateEscrow,
+  onAddMilestone,
+  onActivateEscrow,
   onReleasePayment,
+  onCompleteEscrow,
   onDispute,
 }: EscrowSystemProps) => {
-  const [view, setView] = useState<'overview' | 'create' | 'dispute'>('overview');
+  const [view, setView] = useState<'overview' | 'create' | 'dispute' | 'add-milestone'>('overview');
   const [createData, setCreateData] = useState<CreateEscrowData>({
     bountyId: '',
     worker: '',
@@ -86,7 +94,13 @@ export const EscrowSystem = ({
     milestones: [],
   });
   const [disputeReason, setDisputeReason] = useState('');
+  const [milestoneDesc, setMilestoneDesc] = useState('');
+  const [milestoneAmount, setMilestoneAmount] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Role detection
+  const isEmployer = contract && connectedAddress === contract.employer;
+  const isWorker = contract && connectedAddress === contract.worker;
 
   const handleCreateEscrow = async () => {
     if (!onCreateEscrow) return;
@@ -123,6 +137,45 @@ export const EscrowSystem = ({
       setDisputeReason('');
     } catch (error) {
       console.error('Failed to submit dispute:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddMilestone = async () => {
+    if (!contract || !onAddMilestone || !milestoneDesc || !milestoneAmount) return;
+    setLoading(true);
+    try {
+      await onAddMilestone(contract.id, milestoneDesc, milestoneAmount);
+      setMilestoneDesc('');
+      setMilestoneAmount('');
+      setView('overview');
+    } catch (error) {
+      console.error('Failed to add milestone:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleActivate = async () => {
+    if (!contract || !onActivateEscrow) return;
+    setLoading(true);
+    try {
+      await onActivateEscrow(contract.id);
+    } catch (error) {
+      console.error('Failed to activate escrow:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!contract || !onCompleteEscrow) return;
+    setLoading(true);
+    try {
+      await onCompleteEscrow(contract.id);
+    } catch (error) {
+      console.error('Failed to complete escrow:', error);
     } finally {
       setLoading(false);
     }
@@ -241,6 +294,63 @@ export const EscrowSystem = ({
     );
   }
 
+  if (view === 'add-milestone' && contract) {
+    return (
+      <div className="escrow-card">
+        <h3 className="escrow-title">Add Milestone</h3>
+
+        <div>
+          <div className="escrow-form-group">
+            <label>Description</label>
+            <input
+              type="text"
+              value={milestoneDesc}
+              onChange={(e) => setMilestoneDesc(e.target.value)}
+              placeholder="Milestone deliverable description"
+              className="escrow-input"
+            />
+          </div>
+
+          <div className="escrow-form-group">
+            <label>Amount (STX)</label>
+            <input
+              type="number"
+              value={milestoneAmount}
+              onChange={(e) => setMilestoneAmount(e.target.value)}
+              placeholder="0"
+              min="1"
+              className="escrow-input"
+            />
+          </div>
+
+          <div className="escrow-info-banner">
+            <AlertCircleIcon className="escrow-info-icon" size={16} />
+            <p className="escrow-info-text">
+              Milestones can only be added while the escrow is in pending status. The cumulative milestone total must not exceed the escrow amount.
+            </p>
+          </div>
+
+          <div className="escrow-btn-row">
+            <button
+              onClick={() => { setView('overview'); setMilestoneDesc(''); setMilestoneAmount(''); }}
+              disabled={loading}
+              className="escrow-btn escrow-btn--secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddMilestone}
+              disabled={loading || !milestoneDesc || !milestoneAmount}
+              className="escrow-btn escrow-btn--primary"
+            >
+              {loading ? 'Adding...' : 'Add Milestone'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!contract) {
     return (
       <div className="escrow-card">
@@ -318,6 +428,28 @@ export const EscrowSystem = ({
         )}
 
         {/* Actions */}
+        {contract.status === 'pending' && (
+          <div className="escrow-actions">
+            {isEmployer && onAddMilestone && (
+              <button
+                onClick={() => setView('add-milestone')}
+                className="escrow-btn escrow-btn--primary"
+              >
+                Add Milestone
+              </button>
+            )}
+            {isWorker && onActivateEscrow && (
+              <button
+                onClick={handleActivate}
+                disabled={loading}
+                className="escrow-btn escrow-btn--success"
+              >
+                {loading ? 'Activating...' : 'Accept Contract'}
+              </button>
+            )}
+          </div>
+        )}
+
         {contract.status === 'active' && (
           <div className="escrow-actions">
             <button
@@ -333,6 +465,15 @@ export const EscrowSystem = ({
             >
               {loading ? 'Releasing...' : 'Release Payment'}
             </button>
+            {isEmployer && onCompleteEscrow && contract.milestones?.every(m => m.status === 'released') && (
+              <button
+                onClick={handleComplete}
+                disabled={loading}
+                className="escrow-btn escrow-btn--primary"
+              >
+                {loading ? 'Completing...' : 'Complete Escrow'}
+              </button>
+            )}
           </div>
         )}
       </div>
