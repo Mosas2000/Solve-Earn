@@ -32,7 +32,6 @@ import {
 import { createNetwork, CONTRACT_ADDRESS } from '@/config/network';
 import type { CreateBountyForm, SeverityLevel } from '@/types';
 import { transactionTracker } from './transactionTracker';
-import { getExplorerTxUrl } from './explorerUtils';
 
 const network = createNetwork();
 const BOUNTY_CONTRACT = 'bounty-vault';
@@ -108,7 +107,7 @@ export async function submitVulnerability(
     bountyId: number,
     severity: SeverityLevel,
     reportHash: Uint8Array,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -155,7 +154,7 @@ export async function submitVulnerability(
 export async function approveSubmission(
     submissionId: number,
     rewardAmount: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -207,7 +206,7 @@ export async function approveSubmission(
 
 export async function rejectSubmission(
     submissionId: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -345,7 +344,7 @@ export async function getHighValueThreshold(senderAddress: string): Promise<numb
  */
 export async function confirmApproval(
     submissionId: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void,
 ): Promise<string> {
@@ -362,7 +361,7 @@ export async function confirmApproval(
             onFinish: (data: any) => {
                 const txId = data?.txId || data?.txid || '';
                 if (txId) {
-                    transactionTracker.track(txId, `Confirm approval for submission #${submissionId}`);
+                    transactionTracker.trackTransaction(txId, `Confirm approval for submission #${submissionId}`);
                 }
                 onSuccess?.();
                 resolve(txId);
@@ -424,7 +423,7 @@ export async function getTotalSubmissions(senderAddress: string) {
 export async function closeBounty(
     bountyId: number,
     remainingPool: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -466,7 +465,7 @@ export async function closeBounty(
 }
 
 export async function registerResearcher(
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -611,7 +610,7 @@ export async function calculateSuccessRate(
     }
 }
 
-export async function registerArbiter(senderAddress: string) {
+export async function registerArbiter(_senderAddress: string) {
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
         contractName: DISPUTE_CONTRACT,
@@ -636,7 +635,7 @@ export async function registerArbiter(senderAddress: string) {
 export async function createDispute(
     submissionId: number,
     reason: string,
-    senderAddress: string
+    _senderAddress: string
 ) {
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
@@ -662,7 +661,7 @@ export async function createDispute(
 export async function voteOnDispute(
     disputeId: number,
     vote: boolean,
-    senderAddress: string
+    _senderAddress: string
 ) {
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
@@ -707,7 +706,7 @@ export async function getDispute(disputeId: number, senderAddress: string) {
 
 export async function resolveDispute(
     disputeId: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -809,35 +808,6 @@ function validateReadOnlyResponse(response: any, functionName: string): void {
     }
 }
 
-function isValidClarityValue(value: any): boolean {
-    return value !== null && value !== undefined && typeof value === 'object';
-}
-
-function extractUintValue(cv: any, fieldName: string): number {
-    if (!cv?.value) {
-        throw new Error(`Missing or invalid ${fieldName} value`);
-    }
-    const num = typeof cv.value === 'string' ? parseInt(cv.value, 10) : cv.value;
-    if (isNaN(num)) {
-        throw new Error(`Invalid numeric value for ${fieldName}`);
-    }
-    return num;
-}
-
-function extractStringValue(cv: any, fieldName: string): string {
-    if (!cv?.value || typeof cv.value !== 'string') {
-        throw new Error(`Missing or invalid ${fieldName} value`);
-    }
-    return cv.value;
-}
-
-function extractBoolValue(cv: any, fieldName: string): boolean {
-    if (cv?.value === undefined || typeof cv.value !== 'boolean') {
-        throw new Error(`Missing or invalid ${fieldName} value`);
-    }
-    return cv.value;
-}
-
 // ---------------------------------------------------------------------------
 // Escrow contract calls
 // ---------------------------------------------------------------------------
@@ -894,7 +864,7 @@ export async function addMilestone(
     escrowId: number,
     description: string,
     amount: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -931,7 +901,7 @@ export async function addMilestone(
 
 export async function activateEscrow(
     escrowId: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -966,7 +936,7 @@ export async function releaseMilestone(
     escrowId: number,
     milestoneIndex: number,
     milestoneAmount: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -1012,7 +982,7 @@ export async function releaseMilestone(
 
 export async function disputeEscrow(
     escrowId: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -1045,7 +1015,7 @@ export async function disputeEscrow(
 
 export async function completeEscrow(
     escrowId: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
@@ -1079,7 +1049,7 @@ export async function completeEscrow(
 export async function refundEscrow(
     escrowId: number,
     expectedRefund: number,
-    senderAddress: string,
+    _senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
