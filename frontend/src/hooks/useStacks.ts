@@ -9,7 +9,7 @@ export function useStacks() {
     const [userData, setUserData] = useState(
         userSession.isUserSignedIn() ? userSession.loadUserData() : null
     );
-    const [network] = useState(() => new StacksMainnet());
+    const [network] = useState(() => createNetwork());
 
     useEffect(() => {
         if (userSession.isSignInPending()) {
