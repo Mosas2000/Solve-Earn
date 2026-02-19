@@ -371,26 +371,36 @@ export async function closeBounty(
     });
 }
 
-export async function registerResearcher(senderAddress: string) {
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: REPUTATION_CONTRACT,
-        functionName: 'register-researcher',
-        functionArgs: [],
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Deny,
-        postConditions: [],
-        onFinish: (data: any) => {
-            console.log('Transaction sent:', data);
-        },
-        onCancel: () => {
-            console.log('Transaction canceled');
-        },
-    };
+export async function registerResearcher(
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: REPUTATION_CONTRACT,
+            functionName: 'register-researcher',
+            functionArgs: [],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
+            onFinish: (data: any) => {
+                console.log('Register researcher transaction sent:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'register-researcher', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Registration canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
 
-    await openContractCall(txOptions);
-    return 'pending';
+        openContractCall(txOptions);
+    });
 }
 
 export async function getResearcherProfile(
