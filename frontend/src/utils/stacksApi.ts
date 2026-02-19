@@ -19,6 +19,10 @@ function resolveApiUrl(): string {
 
 const STACKS_API_URL = resolveApiUrl();
 
+if (import.meta.env.DEV) {
+    console.log(`[stacksApi] Using ${NETWORK_MODE} API: ${STACKS_API_URL}`);
+}
+
 export interface StacksTransactionResponse {
     tx_id: string;
     tx_status: 'pending' | 'success' | 'abort_by_response' | 'abort_by_post_condition';
