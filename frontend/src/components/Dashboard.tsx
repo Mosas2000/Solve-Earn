@@ -95,11 +95,9 @@ export function Dashboard() {
                     console.error('Failed to get total submissions:', subCountResult.reason);
                 }
             } catch (err) {
-                console.error('Could not get totals:', err);
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error('Could not get totals:', msg);
                 setError('Failed to fetch data counts from blockchain. Using default values.');
-            }
-            } catch (err) {
-                console.log('Could not get totals, using defaults');
             }
 
             // Fetch all bounties and submissions in parallel
