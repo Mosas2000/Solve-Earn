@@ -34,7 +34,6 @@ interface EscrowSystemProps {
   onCreateEscrow?: (data: CreateEscrowData) => Promise<void>;
   onReleasePayment?: (escrowId: string) => Promise<void>;
   onDispute?: (escrowId: string, reason: string) => Promise<void>;
-  className?: string;
 }
 
 export interface CreateEscrowData {
@@ -78,7 +77,6 @@ export const EscrowSystem = ({
   onCreateEscrow,
   onReleasePayment,
   onDispute,
-  className,
 }: EscrowSystemProps) => {
   const [view, setView] = useState<'overview' | 'create' | 'dispute'>('overview');
   const [createData, setCreateData] = useState<CreateEscrowData>({
