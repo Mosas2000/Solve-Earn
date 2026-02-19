@@ -47,6 +47,6 @@ export function useStacks() {
         userSession,
         network,
         isConnected: !!userData,
-        address: userData?.profile.stxAddress.mainnet || '',
+        address: userData ? getProfileAddress(userData.profile) : '',
     };
 }
