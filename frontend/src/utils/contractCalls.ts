@@ -32,7 +32,6 @@ import {
 import { createNetwork, CONTRACT_ADDRESS } from '@/config/network';
 import type { CreateBountyForm, SeverityLevel } from '@/types';
 import { transactionTracker } from './transactionTracker';
-import { getExplorerTxUrl } from './explorerUtils';
 
 const network = createNetwork();
 const BOUNTY_CONTRACT = 'bounty-vault';
@@ -807,35 +806,6 @@ function validateReadOnlyResponse(response: any, functionName: string): void {
     if (response.error) {
         throw new Error(`${functionName} returned error: ${JSON.stringify(response.error)}`);
     }
-}
-
-function isValidClarityValue(value: any): boolean {
-    return value !== null && value !== undefined && typeof value === 'object';
-}
-
-function extractUintValue(cv: any, fieldName: string): number {
-    if (!cv?.value) {
-        throw new Error(`Missing or invalid ${fieldName} value`);
-    }
-    const num = typeof cv.value === 'string' ? parseInt(cv.value, 10) : cv.value;
-    if (isNaN(num)) {
-        throw new Error(`Invalid numeric value for ${fieldName}`);
-    }
-    return num;
-}
-
-function extractStringValue(cv: any, fieldName: string): string {
-    if (!cv?.value || typeof cv.value !== 'string') {
-        throw new Error(`Missing or invalid ${fieldName} value`);
-    }
-    return cv.value;
-}
-
-function extractBoolValue(cv: any, fieldName: string): boolean {
-    if (cv?.value === undefined || typeof cv.value !== 'boolean') {
-        throw new Error(`Missing or invalid ${fieldName} value`);
-    }
-    return cv.value;
 }
 
 // ---------------------------------------------------------------------------
