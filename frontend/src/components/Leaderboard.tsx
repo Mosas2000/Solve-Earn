@@ -19,7 +19,8 @@ export function Leaderboard() {
         if (isConnected) {
             loadLeaderboard();
         }
-    }, [isConnected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isConnected, address]);
 
     const loadLeaderboard = async () => {
         setLoading(true);
