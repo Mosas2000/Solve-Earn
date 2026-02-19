@@ -9,6 +9,7 @@
 (define-constant err-voting-active (err u306))
 (define-constant err-already-resolved (err u307))
 (define-constant err-arbiter-inactive (err u308))
+(define-constant err-already-registered (err u309))
 
 ;; Minimum number of votes required before a dispute can be resolved
 (define-constant QUORUM u3)
@@ -46,10 +47,14 @@
     { vote: bool, voted-at: uint }
 )
 
-(define-public (register-arbiter)
+(define-public (register-arbiter (new-arbiter principal))
     (begin
+        ;; Only the contract owner may register arbiters
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        ;; Prevent re-registration from inflating the count
+        (asserts! (is-none (map-get? arbiters { arbiter: new-arbiter })) err-already-registered)
         (map-set arbiters
-            { arbiter: tx-sender }
+            { arbiter: new-arbiter }
             {
                 is-active: true,
                 total-votes: u0,
@@ -59,7 +64,7 @@
         (var-set arbiter-count (+ (var-get arbiter-count) u1))
         (print {
             event: "arbiter-registered",
-            arbiter: tx-sender,
+            arbiter: new-arbiter,
             block-height: block-height
         })
         (ok true)
