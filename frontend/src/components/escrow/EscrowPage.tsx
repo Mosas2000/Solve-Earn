@@ -126,6 +126,11 @@ export const EscrowPage = () => {
         }
 
         const amountMicro = Math.round(parseFloat(data.amount) * 1_000_000);
+
+        if (data.deadline && data.deadline.getTime() <= Date.now()) {
+            throw new Error('Deadline must be in the future');
+        }
+
         const durationBlocks = data.deadline
             ? Math.max(1, Math.round((data.deadline.getTime() - Date.now()) / MS_PER_BLOCK))
             : 30 * BLOCKS_PER_DAY;
