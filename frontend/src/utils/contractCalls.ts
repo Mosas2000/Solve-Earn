@@ -327,7 +327,13 @@ export async function getTotalSubmissions(senderAddress: string) {
     }
 }
 
-export async function closeBounty(bountyId: number, remainingPool: number, senderAddress: string) {
+export async function closeBounty(
+    bountyId: number,
+    remainingPool: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
     // The contract refunds up to remainingPool STX back to the bounty owner
     const postConditions = [
         makeContractSTXPostCondition(
@@ -338,25 +344,31 @@ export async function closeBounty(bountyId: number, remainingPool: number, sende
         ),
     ];
 
-    const txOptions = {
-        contractAddress: CONTRACT_ADDRESS,
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'close-bounty',
-        functionArgs: [uintCV(bountyId)],
-        network,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Deny,
-        postConditions,
-        onFinish: (data: any) => {
-            console.log('Transaction sent:', data);
-        },
-        onCancel: () => {
-            console.log('Transaction canceled');
-        },
-    };
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'close-bounty',
+            functionArgs: [uintCV(bountyId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
+            onFinish: (data: any) => {
+                console.log('Close bounty transaction sent:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'close-bounty', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Close bounty canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
 
-    await openContractCall(txOptions);
-    return 'pending';
+        openContractCall(txOptions);
+    });
 }
 
 export async function registerResearcher(senderAddress: string) {
