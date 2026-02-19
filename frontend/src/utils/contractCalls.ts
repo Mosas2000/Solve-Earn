@@ -585,6 +585,99 @@ export async function getDispute(disputeId: number, senderAddress: string) {
     }
 }
 
+export async function resolveDispute(
+    disputeId: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: DISPUTE_CONTRACT,
+            functionName: 'resolve-dispute',
+            functionArgs: [uintCV(disputeId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
+            onFinish: (data: any) => {
+                console.log('Dispute resolution broadcast:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'resolve-dispute', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Dispute resolution canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function getVotingDeadline(disputeId: number, senderAddress: string) {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: DISPUTE_CONTRACT,
+            functionName: 'get-voting-deadline',
+            functionArgs: [uintCV(disputeId)],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getVotingDeadline');
+        return parsed;
+    } catch (error) {
+        console.error(`getVotingDeadline(${disputeId}) failed:`, error);
+        throw new Error(`Failed to fetch voting deadline for dispute #${disputeId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+export async function getArbiterStats(arbiter: string, senderAddress: string) {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: DISPUTE_CONTRACT,
+            functionName: 'get-arbiter-stats',
+            functionArgs: [principalCV(arbiter)],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getArbiterStats');
+        return parsed;
+    } catch (error) {
+        console.error(`getArbiterStats(${arbiter}) failed:`, error);
+        throw new Error(`Failed to fetch arbiter stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+export async function getTotalDisputes(senderAddress: string) {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: DISPUTE_CONTRACT,
+            functionName: 'get-total-disputes',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalDisputes');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalDisputes failed:', error);
+        throw new Error(`Failed to fetch total disputes count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
 // Type guards and validation helpers
 function validateReadOnlyResponse(response: any, functionName: string): void {
     if (!response) {
