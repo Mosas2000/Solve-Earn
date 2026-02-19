@@ -489,7 +489,8 @@ export async function registerArbiter(senderAddress: string) {
         functionArgs: [],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
