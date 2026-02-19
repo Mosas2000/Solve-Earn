@@ -129,6 +129,51 @@
     )
 )
 
+;; Resolve a dispute once the voting period has ended and quorum is met.
+;; The outcome is determined by majority vote: if votes-for > votes-against
+;; the dispute is resolved in favour of the initiator, otherwise it is
+;; rejected. Only callable after the voting period has elapsed.
+(define-public (resolve-dispute (dispute-id uint))
+    (let
+        (
+            (dispute (unwrap! (map-get? disputes { dispute-id: dispute-id }) err-dispute-not-found))
+            (total-votes (+ (get votes-for dispute) (get votes-against dispute)))
+            (voting-deadline (+ (get created-at dispute) VOTING-PERIOD))
+        )
+        ;; Dispute must still be open
+        (asserts! (is-eq (get status dispute) "open") err-already-resolved)
+        ;; Voting period must have ended
+        (asserts! (>= block-height voting-deadline) err-voting-active)
+        ;; Quorum must be reached
+        (asserts! (>= total-votes QUORUM) err-quorum-not-reached)
+        ;; Determine outcome by majority
+        (let
+            (
+                (outcome (if (> (get votes-for dispute) (get votes-against dispute))
+                    "resolved"
+                    "rejected"
+                ))
+            )
+            (map-set disputes
+                { dispute-id: dispute-id }
+                (merge dispute {
+                    status: outcome,
+                    resolved-at: (some block-height)
+                })
+            )
+            (print {
+                event: "dispute-resolved",
+                dispute-id: dispute-id,
+                outcome: outcome,
+                votes-for: (get votes-for dispute),
+                votes-against: (get votes-against dispute),
+                block-height: block-height
+            })
+            (ok outcome)
+        )
+    )
+)
+
 (define-read-only (get-dispute (dispute-id uint))
     (map-get? disputes { dispute-id: dispute-id })
 )
