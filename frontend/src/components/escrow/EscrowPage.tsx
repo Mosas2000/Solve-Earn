@@ -12,6 +12,7 @@ import { EscrowSystem } from './EscrowSystem';
 import type { EscrowContract, Milestone, CreateEscrowData } from './EscrowSystem';
 
 const BLOCKS_PER_DAY = 144;
+const MS_PER_BLOCK = (24 * 60 * 60 * 1000) / BLOCKS_PER_DAY; // ~10 minutes
 
 function parseEscrowResponse(data: any, escrowId: number): EscrowContract | null {
     if (!data || !data.value) return null;
@@ -126,7 +127,7 @@ export const EscrowPage = () => {
 
         const amountMicro = Math.round(parseFloat(data.amount) * 1_000_000);
         const durationBlocks = data.deadline
-            ? Math.max(1, Math.round((data.deadline.getTime() - Date.now()) / (1000 * 60 * 10)) * BLOCKS_PER_DAY / 144)
+            ? Math.max(1, Math.round((data.deadline.getTime() - Date.now()) / MS_PER_BLOCK))
             : 30 * BLOCKS_PER_DAY;
 
         await createEscrow(
