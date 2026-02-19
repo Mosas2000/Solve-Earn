@@ -29,4 +29,11 @@ plan:
             path: contracts/reputation.clar
             anchor-block-only: true
             clarity-version: 1
+        - contract-publish:
+            contract-name: escrow
+            expected-sender: ST3382F8A75J4XF2VVNHTFTRZ0MNDX9J97NSNK2FD
+            cost: 5000
+            path: contracts/escrow.clar
+            anchor-block-only: true
+            clarity-version: 1
       epoch: "2.1"
