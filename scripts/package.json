@@ -7,8 +7,8 @@
     "test": "node test-mainnet.js"
   },
   "dependencies": {
-    "@stacks/network": "^6.17.0",
-    "@stacks/transactions": "^6.17.0",
+    "@stacks/network": "^7.0.1",
+    "@stacks/transactions": "^7.0.1",
     "dotenv": "^16.4.5",
     "ts-node": "^10.9.2"
   }
