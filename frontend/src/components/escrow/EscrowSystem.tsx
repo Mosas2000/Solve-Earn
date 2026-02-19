@@ -427,6 +427,29 @@ export const EscrowSystem = ({
           </div>
         )}
 
+        {/* Status guidance */}
+        {contract.status === 'pending' && (
+          <div className="escrow-info-banner">
+            <AlertCircleIcon className="escrow-info-icon" size={16} />
+            <p className="escrow-info-text">
+              {isEmployer
+                ? 'This escrow is pending. Add milestones and wait for the worker to accept.'
+                : isWorker
+                  ? 'Review the milestones and accept the contract when ready.'
+                  : 'This escrow is awaiting activation by the worker.'}
+            </p>
+          </div>
+        )}
+
+        {contract.status === 'completed' && (
+          <div className="escrow-info-banner escrow-info-banner--success">
+            <CheckCircleIcon className="escrow-info-icon" size={16} />
+            <p className="escrow-info-text">
+              This escrow has been completed. All milestones were delivered and payments released.
+            </p>
+          </div>
+        )}
+
         {/* Actions */}
         {contract.status === 'pending' && (
           <div className="escrow-actions">
