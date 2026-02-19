@@ -1,7 +1,7 @@
 import React from 'react';
-import { useWalletBalance } from '../hooks/useWalletBalance';
+import { useWalletBalance } from '@/hooks/useWalletBalance';
 import { LoadingSpinner } from './LoadingSpinner';
-import '../styles/WalletBalance.css';
+import '@/styles/WalletBalance.css';
 
 export const WalletBalance: React.FC = () => {
   const { stx, loading, error } = useWalletBalance();

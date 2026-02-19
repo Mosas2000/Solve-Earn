@@ -1,5 +1,5 @@
 import React from 'react';
-import '../styles/SortDropdown.css';
+import '@/styles/SortDropdown.css';
 
 export type SortOption = {
   label: string;
