@@ -140,10 +140,21 @@ export async function submitVulnerability(
 
 export async function approveSubmission(
     submissionId: number,
+    rewardAmount: number,
     senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The contract pays the researcher, so constrain how much STX leaves it
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            BOUNTY_CONTRACT,
+            FungibleConditionCode.LessEqual,
+            rewardAmount
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -152,7 +163,8 @@ export async function approveSubmission(
             functionArgs: [uintCV(submissionId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
