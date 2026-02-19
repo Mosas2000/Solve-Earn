@@ -7,6 +7,9 @@ import {
     getMilestone,
     releaseMilestone,
     disputeEscrow,
+    addMilestone,
+    activateEscrow,
+    completeEscrow,
 } from '@/utils/contractCalls';
 import { EscrowSystem } from './EscrowSystem';
 import type { EscrowContract, Milestone, CreateEscrowData } from './EscrowSystem';
@@ -216,6 +219,82 @@ export const EscrowPage = () => {
         );
     }, [address, loadEscrow]);
 
+    const handleAddMilestone = useCallback(async (id: string, description: string, amount: string) => {
+        if (!address) {
+            throw new Error('Wallet not connected');
+        }
+
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId)) {
+            throw new Error('Invalid escrow ID');
+        }
+
+        const amountMicro = Math.round(parseFloat(amount) * 1_000_000);
+        if (isNaN(amountMicro) || amountMicro <= 0) {
+            throw new Error('Invalid milestone amount');
+        }
+
+        await addMilestone(
+            numericId,
+            description,
+            amountMicro,
+            address,
+            () => {
+                console.log('Milestone added successfully');
+                loadEscrow(numericId);
+            },
+            (err) => {
+                console.error('Failed to add milestone:', err);
+            }
+        );
+    }, [address, loadEscrow]);
+
+    const handleActivateEscrow = useCallback(async (id: string) => {
+        if (!address) {
+            throw new Error('Wallet not connected');
+        }
+
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId)) {
+            throw new Error('Invalid escrow ID');
+        }
+
+        await activateEscrow(
+            numericId,
+            address,
+            () => {
+                console.log('Escrow activated');
+                loadEscrow(numericId);
+            },
+            (err) => {
+                console.error('Escrow activation failed:', err);
+            }
+        );
+    }, [address, loadEscrow]);
+
+    const handleCompleteEscrow = useCallback(async (id: string) => {
+        if (!address) {
+            throw new Error('Wallet not connected');
+        }
+
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId)) {
+            throw new Error('Invalid escrow ID');
+        }
+
+        await completeEscrow(
+            numericId,
+            address,
+            () => {
+                console.log('Escrow completed');
+                loadEscrow(numericId);
+            },
+            (err) => {
+                console.error('Escrow completion failed:', err);
+            }
+        );
+    }, [address, loadEscrow]);
+
     const handleLookup = () => {
         const id = parseInt(lookupId, 10);
         if (!isNaN(id) && id >= 0) {
@@ -264,9 +343,13 @@ export const EscrowPage = () => {
 
             <EscrowSystem
                 contract={activeEscrow || undefined}
+                connectedAddress={address}
                 onCreateEscrow={handleCreateEscrow}
                 onReleasePayment={handleReleasePayment}
                 onDispute={handleDispute}
+                onAddMilestone={handleAddMilestone}
+                onActivateEscrow={handleActivateEscrow}
+                onCompleteEscrow={handleCompleteEscrow}
             />
         </div>
     );
