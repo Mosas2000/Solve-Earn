@@ -186,3 +186,26 @@
         false
     )
 )
+
+;; Deactivate an arbiter. Only the contract owner may call this.
+;; Deactivated arbiters can no longer vote on disputes.
+(define-public (deactivate-arbiter (who principal))
+    (let
+        (
+            (arbiter (unwrap! (map-get? arbiters { arbiter: who }) err-not-arbiter))
+        )
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (asserts! (get is-active arbiter) err-arbiter-inactive)
+        (map-set arbiters
+            { arbiter: who }
+            (merge arbiter { is-active: false })
+        )
+        (var-set arbiter-count (- (var-get arbiter-count) u1))
+        (print {
+            event: "arbiter-deactivated",
+            arbiter: who,
+            block-height: block-height
+        })
+        (ok true)
+    )
+)
