@@ -104,7 +104,8 @@ export function ManageSubmissions() {
                         // Fetch off-chain report content if available
                         let reportContent: StoredReport | null = null;
                         if (reportHash) {
-                            reportContent = getReport(reportHash);
+                            const submitter = sub.value.researcher?.value || '';
+                            reportContent = await getReport(reportHash, submitter);
                             if (!reportContent) {
                                 console.warn(`Report not found for hash: ${reportHash}`);
                             }
