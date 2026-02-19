@@ -4,6 +4,16 @@
 (define-constant err-dispute-not-found (err u301))
 (define-constant err-already-voted (err u302))
 (define-constant err-not-arbiter (err u303))
+(define-constant err-dispute-closed (err u304))
+(define-constant err-quorum-not-reached (err u305))
+(define-constant err-voting-active (err u306))
+(define-constant err-already-resolved (err u307))
+(define-constant err-arbiter-inactive (err u308))
+
+;; Minimum number of votes required before a dispute can be resolved
+(define-constant QUORUM u3)
+;; Number of blocks after creation during which voting is allowed
+(define-constant VOTING-PERIOD u144)
 
 (define-data-var dispute-nonce uint u0)
 (define-data-var arbiter-count uint u0)
