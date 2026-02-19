@@ -204,7 +204,7 @@ export function CreateBounty() {
 
                 {txId && (
                     <div className="success-message">
-                        Bounty created! Transaction ID: {txId}
+                        Bounty created! Transaction ID: {txId.slice(0, 10)}...{txId.slice(-6)}
                     </div>
                 )}
             </form>
