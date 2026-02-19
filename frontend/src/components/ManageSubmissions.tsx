@@ -25,7 +25,8 @@ export function ManageSubmissions() {
         if (isConnected) {
             loadSubmissions();
         }
-    }, [isConnected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isConnected, address]);
 
     const loadSubmissions = async () => {
         setLoading(true);

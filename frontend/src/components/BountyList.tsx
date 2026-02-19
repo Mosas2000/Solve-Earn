@@ -17,7 +17,8 @@ export function BountyList() {
         if (isConnected) {
             loadBounties();
         }
-    }, [isConnected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isConnected, address]);
 
     const loadBounties = async () => {
         setLoading(true);
