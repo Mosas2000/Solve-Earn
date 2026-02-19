@@ -11,12 +11,10 @@ const {
   AnchorMode,
   PostConditionMode,
 } = require('@stacks/transactions');
-const { StacksMainnet } = require('@stacks/network');
 const readline = require('readline');
 require('dotenv').config();
 
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+const { network, CONTRACT_ADDRESS, NETWORK_LABEL } = require('./network-config');
 const SENDER_KEY = process.env.STACKS_PRIVATE_KEY;
 
 const rl = readline.createInterface({

@@ -2,11 +2,22 @@
  * Utilities for Stacks Explorer integration
  */
 
-const MAINNET_EXPLORER = 'https://explorer.hiro.so';
-const TESTNET_EXPLORER = 'https://explorer.hiro.so/?chain=testnet';
+import { NETWORK_MODE } from '@/config/network';
 
-// Using mainnet since the app is configured for mainnet
-const EXPLORER_BASE_URL = MAINNET_EXPLORER;
+function resolveExplorerBaseUrl(): string {
+    switch (NETWORK_MODE) {
+        case 'mainnet':
+            return 'https://explorer.hiro.so';
+        case 'testnet':
+            return 'https://explorer.hiro.so/?chain=testnet';
+        case 'devnet':
+            return 'http://localhost:8000';
+        default:
+            return 'https://explorer.hiro.so';
+    }
+}
+
+const EXPLORER_BASE_URL = resolveExplorerBaseUrl();
 
 /**
  * Get the Stacks Explorer URL for a transaction

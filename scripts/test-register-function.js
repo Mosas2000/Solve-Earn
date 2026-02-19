@@ -1,13 +1,10 @@
-// Test register-researcher function on mainnet
+// Test register-researcher function on deployed contracts
 const {
   callReadOnlyFunction,
   cvToJSON,
   principalCV,
 } = require('@stacks/transactions');
-const { StacksMainnet } = require('@stacks/network');
-
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+const { network, CONTRACT_ADDRESS } = require('./network-config');
 
 async function testRegisterFunction() {
   console.log('🧪 Testing register-researcher function availability\n');

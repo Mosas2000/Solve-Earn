@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AppConfig, UserSession, showConnect } from '@stacks/connect';
-import { StacksMainnet } from '@stacks/network';
+import { createNetwork, getProfileAddress } from '@/config/network';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
 const userSession = new UserSession({ appConfig });
@@ -9,7 +9,7 @@ export function useStacks() {
     const [userData, setUserData] = useState(
         userSession.isUserSignedIn() ? userSession.loadUserData() : null
     );
-    const [network] = useState(() => new StacksMainnet());
+    const [network] = useState(() => createNetwork());
 
     useEffect(() => {
         if (userSession.isSignInPending()) {
@@ -47,6 +47,6 @@ export function useStacks() {
         userSession,
         network,
         isConnected: !!userData,
-        address: userData?.profile.stxAddress.mainnet || '',
+        address: userData ? getProfileAddress(userData.profile) : '',
     };
 }

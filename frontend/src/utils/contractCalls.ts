@@ -1,6 +1,11 @@
 // ---------------------------------------------------------------------------
 // Contract interaction layer
 //
+// Network:
+//   The active network and contract address are resolved by the
+//   centralised config module (config/network.ts) using environment
+//   variables. See .env.example for available options.
+//
 // Post-condition policy:
 //   Every transaction uses PostConditionMode.Deny so the wallet will reject
 //   any token transfer that is not explicitly declared. Functions that move
@@ -24,13 +29,12 @@ import {
     makeContractSTXPostCondition,
     FungibleConditionCode,
 } from '@stacks/transactions';
-import { StacksMainnet } from '@stacks/network';
+import { createNetwork, CONTRACT_ADDRESS } from '@/config/network';
 import type { CreateBountyForm, SeverityLevel } from '@/types';
 import { transactionTracker } from './transactionTracker';
 import { getExplorerTxUrl } from './explorerUtils';
 
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+const network = createNetwork();
 const BOUNTY_CONTRACT = 'bounty-vault';
 const REPUTATION_CONTRACT = 'reputation';
 const DISPUTE_CONTRACT = 'dispute-resolver';

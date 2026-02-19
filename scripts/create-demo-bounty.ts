@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 /**
- * Demo script to create a bounty on mainnet
+ * Demo script to create a bounty on the configured Stacks network
  * This creates real on-chain transactions
  */
 
@@ -12,17 +12,19 @@ import {
     uintCV,
     stringUtf8CV,
 } from '@stacks/transactions';
-import { StacksMainnet } from '@stacks/network';
 
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+// Use shared network config (CommonJS require for compatibility)
+const networkConfig = require('./network-config');
+const network = networkConfig.network;
+const CONTRACT_ADDRESS: string = networkConfig.CONTRACT_ADDRESS;
+const NETWORK_LABEL: string = networkConfig.NETWORK_LABEL;
 const BOUNTY_CONTRACT = 'bounty-vault';
 
 // Your wallet private key (KEEP THIS SECURE!)
 const SENDER_KEY = process.env.STACKS_PRIVATE_KEY || '';
 
 async function createDemoBounty() {
-    console.log('🚀 Creating Demo Bounty on Mainnet...\n');
+    console.log(`🚀 Creating Demo Bounty on ${NETWORK_LABEL}...\n`);
 
     // Bounty details
     const bountyData = {

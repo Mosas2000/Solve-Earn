@@ -8,6 +8,7 @@ import { ManageSubmissions } from '@/components/ManageSubmissions';
 import { EscrowPage } from '@/components/escrow/EscrowPage';
 import { ToastProvider } from '@/components/ToastProvider';
 import { TransactionStatusNotifications } from '@/components/TransactionStatusNotifications';
+import { NetworkBadge } from '@/components/NetworkBadge';
 import '@/App.css';
 
 function App() {
@@ -21,7 +22,7 @@ function App() {
                 
                 <nav className="navbar">
                     <div className="nav-brand">
-                        <h1>Solve-Earn</h1>
+                        <h1>Solve-Earn<NetworkBadge /></h1>
                         <p>Decentralized Bug Bounty Platform on Stacks</p>
                     </div>
 
