@@ -10,6 +10,7 @@ import {
 } from '@/utils/contractCalls';
 import { useToast } from '../ToastProvider';
 import type { SeverityLevel } from '@/types';
+import '@/styles/ArbiterDashboard.css';
 
 interface PendingConfirmation {
     submissionId: number;

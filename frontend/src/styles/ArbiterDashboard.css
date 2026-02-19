@@ -1,0 +1,64 @@
+.arbiter-dashboard {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.arbiter-dashboard h2 {
+    margin-bottom: 0.5rem;
+    font-size: 1.4rem;
+}
+
+.arbiter-dashboard .threshold-info {
+    color: var(--text-secondary, #6b7280);
+    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+}
+
+.arbiter-dashboard .loading-text {
+    text-align: center;
+    padding: 2rem 0;
+    color: var(--text-secondary, #6b7280);
+}
+
+.arbiter-dashboard .empty-state {
+    text-align: center;
+    padding: 2rem 0;
+    color: var(--text-secondary, #6b7280);
+}
+
+.arbiter-dashboard .submissions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.arbiter-dashboard .submissions-table th,
+.arbiter-dashboard .submissions-table td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.arbiter-dashboard .submissions-table th {
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.arbiter-dashboard .status-confirmed {
+    color: var(--success-color, #16a34a);
+    font-weight: 500;
+}
+
+.arbiter-dashboard .status-pending {
+    color: var(--warning-color, #d97706);
+    font-weight: 500;
+}
+
+.arbiter-dashboard .btn-sm {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8rem;
+}
