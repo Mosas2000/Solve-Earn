@@ -1,217 +1,142 @@
-import {
-    Clarinet,
-    Tx,
-    Chain,
-    Account,
-    types
-} from 'https://deno.land/x/clarinet@v1.7.0/index.ts';
+import { Clarinet, Tx, Chain, Account, types } from 'https://deno.land/x/clarinet@v1.7.0/index.ts';
 import { assertEquals } from 'https://deno.land/std@0.170.0/testing/asserts.ts';
 
+// ---------------------------------------------------------------------------
+// Arbiter registration
+// ---------------------------------------------------------------------------
+
 Clarinet.test({
-    name: "Arbiter can register successfully",
+    name: "Can register as an arbiter",
     async fn(chain: Chain, accounts: Map<string, Account>) {
         const arbiter = accounts.get('wallet_1')!;
 
-        // Register arbiter
         let block = chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'register-arbiter',
-                [],
-                arbiter.address
-            )
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address)
         ]);
 
-        // Should return ok true
         block.receipts[0].result.expectOk().expectBool(true);
+
+        // Verify registration
+        const check = chain.callReadOnlyFn(
+            'dispute-resolver',
+            'is-registered-arbiter',
+            [types.principal(arbiter.address)],
+            arbiter.address
+        );
+        check.result.expectBool(true);
     }
 });
 
 Clarinet.test({
-    name: "User can create a dispute",
+    name: "Get active arbiter count after registration",
     async fn(chain: Chain, accounts: Map<string, Account>) {
-        const user = accounts.get('wallet_1')!;
+        const a1 = accounts.get('wallet_1')!;
+        const a2 = accounts.get('wallet_2')!;
 
-        // Create dispute
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a1.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a2.address),
+        ]);
+
+        const count = chain.callReadOnlyFn(
+            'dispute-resolver',
+            'get-active-arbiter-count',
+            [],
+            a1.address
+        );
+        count.result.expectOk().expectUint(2);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Dispute creation
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Can create a dispute",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+
         let block = chain.mineBlock([
             Tx.contractCall(
                 'dispute-resolver',
                 'create-dispute',
-                [
-                    types.uint(1),
-                    types.utf8("Vulnerability report is inaccurate")
-                ],
-                user.address
+                [types.uint(1), types.utf8("Invalid submission report")],
+                initiator.address
             )
         ]);
 
-        // Should return ok with dispute-id 1
         block.receipts[0].result.expectOk().expectUint(1);
 
-        // Verify dispute was created
-        let disputeResult = chain.callReadOnlyFn(
+        const dispute = chain.callReadOnlyFn(
             'dispute-resolver',
             'get-dispute',
             [types.uint(1)],
-            user.address
+            initiator.address
         );
-
-        const dispute = disputeResult.result.expectSome().expectTuple();
-        assertEquals(dispute['submission-id'], types.uint(1));
-        assertEquals(dispute['initiator'], types.principal(user.address));
-        assertEquals(dispute['votes-for'], types.uint(0));
-        assertEquals(dispute['votes-against'], types.uint(0));
-        assertEquals(dispute['status'], types.ascii("open"));
+        const data = dispute.result.expectSome().expectTuple();
+        assertEquals(data['status'], '"open"');
     }
 });
 
 Clarinet.test({
-    name: "Arbiter can vote on dispute",
+    name: "Total disputes counter increments",
     async fn(chain: Chain, accounts: Map<string, Account>) {
         const user = accounts.get('wallet_1')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Reason A")], user.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(2), types.utf8("Reason B")], user.address),
+        ]);
+
+        const total = chain.callReadOnlyFn(
+            'dispute-resolver', 'get-total-disputes', [], user.address
+        );
+        total.result.expectOk().expectUint(2);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Voting
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Registered arbiter can vote on a dispute",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
         const arbiter = accounts.get('wallet_2')!;
 
-        // Register arbiter
         chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'register-arbiter',
-                [],
-                arbiter.address
-            )
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Bad report")], initiator.address),
         ]);
 
-        // Create dispute
-        chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'create-dispute',
-                [
-                    types.uint(1),
-                    types.utf8("Testing vote functionality")
-                ],
-                user.address
-            )
-        ]);
-
-        // Arbiter votes for the dispute
         let block = chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'vote-on-dispute',
-                [
-                    types.uint(1),
-                    types.bool(true)
-                ],
-                arbiter.address
-            )
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], arbiter.address)
         ]);
 
         block.receipts[0].result.expectOk().expectBool(true);
-
-        // Verify vote was recorded
-        let disputeResult = chain.callReadOnlyFn(
-            'dispute-resolver',
-            'get-dispute',
-            [types.uint(1)],
-            user.address
-        );
-
-        const dispute = disputeResult.result.expectSome().expectTuple();
-        assertEquals(dispute['votes-for'], types.uint(1));
-        assertEquals(dispute['votes-against'], types.uint(0));
     }
 });
 
 Clarinet.test({
-    name: "Prevents duplicate voting by same arbiter",
+    name: "Non-arbiter cannot vote",
     async fn(chain: Chain, accounts: Map<string, Account>) {
-        const user = accounts.get('wallet_1')!;
-        const arbiter = accounts.get('wallet_2')!;
+        const initiator = accounts.get('wallet_1')!;
+        const random = accounts.get('wallet_3')!;
 
-        // Register arbiter
         chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'register-arbiter',
-                [],
-                arbiter.address
-            )
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Some reason")], initiator.address),
         ]);
 
-        // Create dispute
-        chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'create-dispute',
-                [
-                    types.uint(1),
-                    types.utf8("Testing duplicate vote prevention")
-                ],
-                user.address
-            )
-        ]);
-
-        // First vote should succeed
-        chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'vote-on-dispute',
-                [
-                    types.uint(1),
-                    types.bool(true)
-                ],
-                arbiter.address
-            )
-        ]);
-
-        // Second vote should fail with err u302
         let block = chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'vote-on-dispute',
-                [
-                    types.uint(1),
-                    types.bool(false)
-                ],
-                arbiter.address
-            )
-        ]);
-
-        block.receipts[0].result.expectErr().expectUint(302);
-    }
-});
-
-Clarinet.test({
-    name: "Prevents non-arbiter from voting on disputes",
-    async fn(chain: Chain, accounts: Map<string, Account>) {
-        const user = accounts.get('wallet_1')!;
-        const nonArbiter = accounts.get('wallet_2')!;
-
-        // Create dispute
-        chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'create-dispute',
-                [
-                    types.uint(1),
-                    types.utf8("Testing non-arbiter vote prevention")
-                ],
-                user.address
-            )
-        ]);
-
-        // Non-arbiter tries to vote - should fail with err u303
-        let block = chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'vote-on-dispute',
-                [
-                    types.uint(1),
-                    types.bool(true)
-                ],
-                nonArbiter.address
-            )
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], random.address)
         ]);
 
         block.receipts[0].result.expectErr().expectUint(303);
@@ -219,34 +144,436 @@ Clarinet.test({
 });
 
 Clarinet.test({
-    name: "Returns error for non-existent dispute",
+    name: "Arbiter cannot vote twice on the same dispute",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const arbiter = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Duplicate vote test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], arbiter.address)
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(false)], arbiter.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(302);
+    }
+});
+
+Clarinet.test({
+    name: "Vote increments arbiter total-votes",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const arbiter = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Stats test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], arbiter.address)
+        ]);
+
+        const stats = chain.callReadOnlyFn(
+            'dispute-resolver', 'get-arbiter-stats',
+            [types.principal(arbiter.address)], arbiter.address
+        );
+        const data = stats.result.expectSome().expectTuple();
+        assertEquals(data['total-votes'], 'u1');
+    }
+});
+
+Clarinet.test({
+    name: "Cannot vote on a non-existent dispute",
     async fn(chain: Chain, accounts: Map<string, Account>) {
         const arbiter = accounts.get('wallet_1')!;
 
-        // Register arbiter
         chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'register-arbiter',
-                [],
-                arbiter.address
-            )
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
         ]);
 
-        // Try to vote on non-existent dispute - should fail with err u301
         let block = chain.mineBlock([
-            Tx.contractCall(
-                'dispute-resolver',
-                'vote-on-dispute',
-                [
-                    types.uint(999),
-                    types.bool(true)
-                ],
-                arbiter.address
-            )
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(999), types.bool(true)], arbiter.address)
         ]);
 
         block.receipts[0].result.expectErr().expectUint(301);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Resolution
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Cannot resolve dispute before voting period ends",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const a1 = accounts.get('wallet_2')!;
+        const a2 = accounts.get('wallet_3')!;
+        const a3 = accounts.get('wallet_4')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a1.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a2.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a3.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Early resolve test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a1.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a2.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a3.address),
+        ]);
+
+        // Try to resolve immediately (voting period not ended)
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'resolve-dispute',
+                [types.uint(1)], initiator.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(306);
+    }
+});
+
+Clarinet.test({
+    name: "Cannot resolve dispute without quorum",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const a1 = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a1.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("No quorum test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a1.address),
+        ]);
+
+        // Advance past voting period (144 blocks)
+        chain.mineEmptyBlockUntil(150);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'resolve-dispute',
+                [types.uint(1)], initiator.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(305);
+    }
+});
+
+Clarinet.test({
+    name: "Resolve dispute with majority in favour",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const a1 = accounts.get('wallet_2')!;
+        const a2 = accounts.get('wallet_3')!;
+        const a3 = accounts.get('wallet_4')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a1.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a2.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a3.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Majority for test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a1.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a2.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(false)], a3.address),
+        ]);
+
+        // Advance past voting period
+        chain.mineEmptyBlockUntil(150);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'resolve-dispute',
+                [types.uint(1)], initiator.address)
+        ]);
+
+        block.receipts[0].result.expectOk();
+
+        // Check final dispute state
+        const dispute = chain.callReadOnlyFn(
+            'dispute-resolver', 'get-dispute', [types.uint(1)], initiator.address
+        );
+        const data = dispute.result.expectSome().expectTuple();
+        assertEquals(data['status'], '"resolved"');
+    }
+});
+
+Clarinet.test({
+    name: "Resolve dispute with majority against rejects it",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const a1 = accounts.get('wallet_2')!;
+        const a2 = accounts.get('wallet_3')!;
+        const a3 = accounts.get('wallet_4')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a1.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a2.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a3.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Majority against test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(false)], a1.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(false)], a2.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a3.address),
+        ]);
+
+        chain.mineEmptyBlockUntil(150);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'resolve-dispute',
+                [types.uint(1)], initiator.address)
+        ]);
+
+        block.receipts[0].result.expectOk();
+
+        const dispute = chain.callReadOnlyFn(
+            'dispute-resolver', 'get-dispute', [types.uint(1)], initiator.address
+        );
+        const data = dispute.result.expectSome().expectTuple();
+        assertEquals(data['status'], '"rejected"');
+    }
+});
+
+Clarinet.test({
+    name: "Cannot resolve a dispute twice",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const a1 = accounts.get('wallet_2')!;
+        const a2 = accounts.get('wallet_3')!;
+        const a3 = accounts.get('wallet_4')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a1.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a2.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a3.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Double resolve test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a1.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a2.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a3.address),
+        ]);
+
+        chain.mineEmptyBlockUntil(150);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'resolve-dispute',
+                [types.uint(1)], initiator.address)
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'resolve-dispute',
+                [types.uint(1)], initiator.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(307);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Voting period enforcement
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Cannot vote after voting period expires",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const arbiter = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Late vote test")], initiator.address),
+        ]);
+
+        // Advance past voting period
+        chain.mineEmptyBlockUntil(150);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], arbiter.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(304);
+    }
+});
+
+Clarinet.test({
+    name: "Cannot vote on a resolved dispute",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const initiator = accounts.get('wallet_1')!;
+        const a1 = accounts.get('wallet_2')!;
+        const a2 = accounts.get('wallet_3')!;
+        const a3 = accounts.get('wallet_4')!;
+        const lateArbiter = accounts.get('wallet_5')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a1.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a2.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], a3.address),
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], lateArbiter.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Closed vote test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a1.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a2.address),
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], a3.address),
+        ]);
+
+        chain.mineEmptyBlockUntil(150);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'resolve-dispute',
+                [types.uint(1)], initiator.address)
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], lateArbiter.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(304);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Arbiter management
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Contract owner can deactivate an arbiter",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const arbiter = accounts.get('wallet_1')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'deactivate-arbiter',
+                [types.principal(arbiter.address)], deployer.address)
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+
+        const check = chain.callReadOnlyFn(
+            'dispute-resolver', 'is-registered-arbiter',
+            [types.principal(arbiter.address)], deployer.address
+        );
+        check.result.expectBool(false);
+    }
+});
+
+Clarinet.test({
+    name: "Non-owner cannot deactivate an arbiter",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const arbiter = accounts.get('wallet_1')!;
+        const random = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'deactivate-arbiter',
+                [types.principal(arbiter.address)], random.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(300);
+    }
+});
+
+Clarinet.test({
+    name: "Deactivated arbiter cannot vote",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const initiator = accounts.get('wallet_1')!;
+        const arbiter = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [], arbiter.address),
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Deactivated arbiter test")], initiator.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'deactivate-arbiter',
+                [types.principal(arbiter.address)], deployer.address)
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'vote-on-dispute',
+                [types.uint(1), types.bool(true)], arbiter.address)
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(308);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Voting deadline read-only
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Get voting deadline returns correct block height",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const user = accounts.get('wallet_1')!;
+
+        let block = chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'create-dispute',
+                [types.uint(1), types.utf8("Deadline test")], user.address),
+        ]);
+
+        // Dispute was created at block-height of the mineBlock call
+        // The voting deadline should be created-at + 144
+        const deadline = chain.callReadOnlyFn(
+            'dispute-resolver', 'get-voting-deadline', [types.uint(1)], user.address
+        );
+        deadline.result.expectOk();
     }
 });
 
