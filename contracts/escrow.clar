@@ -222,11 +222,17 @@
     (let
         (
             (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+            (surplus (- (get total-amount escrow) (get released-amount escrow)))
         )
         (asserts! (is-eq tx-sender (get employer escrow)) err-unauthorized)
         (asserts! (is-eq (get status escrow) "active") err-invalid-status)
         ;; All committed milestone funds must have been released before completion
         (asserts! (>= (get released-amount escrow) (get committed-amount escrow)) err-milestones-pending)
+        ;; Refund any uncommitted surplus back to the employer
+        (if (> surplus u0)
+            (try! (as-contract (stx-transfer? surplus tx-sender (get employer escrow))))
+            true
+        )
         (map-set escrows
             { escrow-id: escrow-id }
             (merge escrow { status: "completed" })
@@ -234,6 +240,7 @@
         (print {
             event: "escrow-completed",
             escrow-id: escrow-id,
+            surplus-refunded: surplus,
             block-height: block-height
         })
         (ok true)
