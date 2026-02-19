@@ -353,7 +353,8 @@ export async function registerResearcher(senderAddress: string) {
         functionArgs: [],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
