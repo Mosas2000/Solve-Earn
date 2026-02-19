@@ -313,7 +313,17 @@ export async function getTotalSubmissions(senderAddress: string) {
     }
 }
 
-export async function closeBounty(bountyId: number, senderAddress: string) {
+export async function closeBounty(bountyId: number, remainingPool: number, senderAddress: string) {
+    // The contract refunds up to remainingPool STX back to the bounty owner
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            BOUNTY_CONTRACT,
+            FungibleConditionCode.LessEqual,
+            remainingPool
+        ),
+    ];
+
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
         contractName: BOUNTY_CONTRACT,
@@ -321,7 +331,8 @@ export async function closeBounty(bountyId: number, senderAddress: string) {
         functionArgs: [uintCV(bountyId)],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions,
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
