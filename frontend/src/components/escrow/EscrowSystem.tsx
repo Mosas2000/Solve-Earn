@@ -6,7 +6,7 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
 } from '../icons/Icons';
-import '../../styles/EscrowSystem.css';
+import '@/styles/EscrowSystem.css';
 
 export interface EscrowContract {
   id: string;

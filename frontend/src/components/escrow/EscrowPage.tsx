@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useStacks } from '../../hooks/useStacks';
+import { useStacks } from '@/hooks/useStacks';
 import {
     createEscrow,
     getEscrow,
@@ -7,7 +7,7 @@ import {
     getMilestone,
     releaseMilestone,
     disputeEscrow,
-} from '../../utils/contractCalls';
+} from '@/utils/contractCalls';
 import { EscrowSystem } from './EscrowSystem';
 import type { EscrowContract, Milestone, CreateEscrowData } from './EscrowSystem';
 
