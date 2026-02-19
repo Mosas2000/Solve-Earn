@@ -110,7 +110,8 @@ export async function submitVulnerability(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
