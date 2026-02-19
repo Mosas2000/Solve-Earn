@@ -15,6 +15,7 @@
 (define-constant err-milestone-limit (err u408))
 (define-constant err-exceeds-total (err u409))
 (define-constant err-milestones-pending (err u410))
+(define-constant err-not-disputed (err u411))
 
 (define-constant MAX-MILESTONES u10)
 
@@ -216,6 +217,59 @@
     )
 )
 
+;; Resolve a disputed escrow. Only a registered arbiter may call this.
+;; If favour-worker is true, the escrow returns to active so milestones
+;; can continue to be released. Otherwise the remaining funds are
+;; refunded to the employer.
+(define-public (resolve-escrow-dispute (escrow-id uint) (favour-worker bool))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+            (remaining (- (get total-amount escrow) (get released-amount escrow)))
+        )
+        ;; Only registered arbiters may resolve
+        (asserts! (contract-call? .dispute-resolver is-registered-arbiter tx-sender) err-unauthorized)
+        (asserts! (is-eq (get status escrow) "disputed") err-not-disputed)
+        (if favour-worker
+            ;; Return escrow to active so work can continue
+            (begin
+                (map-set escrows
+                    { escrow-id: escrow-id }
+                    (merge escrow { status: "active" })
+                )
+                (print {
+                    event: "escrow-dispute-resolved",
+                    escrow-id: escrow-id,
+                    outcome: "worker-favoured",
+                    arbiter: tx-sender,
+                    block-height: block-height
+                })
+                (ok true)
+            )
+            ;; Refund remaining funds to employer
+            (begin
+                (if (> remaining u0)
+                    (try! (as-contract (stx-transfer? remaining tx-sender (get employer escrow))))
+                    true
+                )
+                (map-set escrows
+                    { escrow-id: escrow-id }
+                    (merge escrow { status: "refunded" })
+                )
+                (print {
+                    event: "escrow-dispute-resolved",
+                    escrow-id: escrow-id,
+                    outcome: "employer-refunded",
+                    refund-amount: remaining,
+                    arbiter: tx-sender,
+                    block-height: block-height
+                })
+                (ok true)
+            )
+        )
+    )
+)
+
 ;; Mark the escrow as completed. Called by the employer after all milestones
 ;; have been released, or to finalize a non-milestone escrow.
 (define-public (complete-escrow (escrow-id uint))
@@ -297,4 +351,11 @@
 
 (define-read-only (get-total-escrows)
     (ok (var-get escrow-nonce))
+)
+
+(define-read-only (is-disputed (escrow-id uint))
+    (match (map-get? escrows { escrow-id: escrow-id })
+        escrow (ok (is-eq (get status escrow) "disputed"))
+        err-escrow-not-found
+    )
 )
