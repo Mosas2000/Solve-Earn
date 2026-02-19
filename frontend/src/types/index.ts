@@ -44,7 +44,7 @@ export interface Dispute {
     createdAt: number;
     votesFor: number;
     votesAgainst: number;
-    status: 'open' | 'resolved'; // max 8 chars
+    status: 'open' | 'resolved' | 'rejected';
     resolvedAt?: number;
 }
 
