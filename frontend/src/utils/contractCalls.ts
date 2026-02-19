@@ -29,8 +29,7 @@ import type { CreateBountyForm, SeverityLevel } from '@/types';
 import { transactionTracker } from './transactionTracker';
 import { getExplorerTxUrl } from './explorerUtils';
 
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+const network = createNetwork();
 const BOUNTY_CONTRACT = 'bounty-vault';
 const REPUTATION_CONTRACT = 'reputation';
 const DISPUTE_CONTRACT = 'dispute-resolver';
