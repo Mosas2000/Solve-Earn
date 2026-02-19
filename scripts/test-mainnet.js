@@ -14,7 +14,6 @@ const {
   callReadOnlyFunction,
   cvToJSON,
 } = require('@stacks/transactions');
-const { StacksMainnet } = require('@stacks/network');
 require('dotenv').config();
 
 const { network, CONTRACT_ADDRESS, NETWORK_LABEL } = require('./network-config');

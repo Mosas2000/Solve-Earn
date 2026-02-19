@@ -12,7 +12,6 @@ import {
     uintCV,
     stringUtf8CV,
 } from '@stacks/transactions';
-import { StacksMainnet } from '@stacks/network';
 
 // Use shared network config (CommonJS require for compatibility)
 const networkConfig = require('./network-config');

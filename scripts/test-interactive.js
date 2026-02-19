@@ -17,7 +17,6 @@ const {
   callReadOnlyFunction,
   cvToJSON,
 } = require('@stacks/transactions');
-const { StacksMainnet } = require('@stacks/network');
 const readline = require('readline');
 require('dotenv').config();
 
