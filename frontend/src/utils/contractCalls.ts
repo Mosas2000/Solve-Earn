@@ -515,7 +515,8 @@ export async function createDispute(
         functionArgs: [uintCV(submissionId), stringUtf8CV(reason)],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
@@ -540,7 +541,8 @@ export async function voteOnDispute(
         functionArgs: [uintCV(disputeId), boolCV(vote)],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
