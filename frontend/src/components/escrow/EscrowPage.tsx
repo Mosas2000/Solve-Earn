@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useStacks } from '@/hooks/useStacks';
 import {
     createEscrow,
     getEscrow,
-    getTotalEscrows,
     getMilestone,
     releaseMilestone,
     disputeEscrow,
@@ -75,7 +74,6 @@ function parseMilestoneResponse(data: any, index: number): Milestone | null {
 export const EscrowPage = () => {
     const { address, isConnected } = useStacks();
     const [activeEscrow, setActiveEscrow] = useState<EscrowContract | null>(null);
-    const [escrowId, setEscrowId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [lookupId, setLookupId] = useState('');
@@ -113,7 +111,6 @@ export const EscrowPage = () => {
 
             escrow.milestones = milestones;
             setActiveEscrow(escrow);
-            setEscrowId(id);
         } catch (err) {
             console.error('Failed to load escrow:', err);
             setError(err instanceof Error ? err.message : 'Failed to load escrow');
