@@ -1,6 +1,11 @@
 // ---------------------------------------------------------------------------
 // Contract interaction layer
 //
+// Network:
+//   The active network and contract address are resolved by the
+//   centralised config module (config/network.ts) using environment
+//   variables. See .env.example for available options.
+//
 // Post-condition policy:
 //   Every transaction uses PostConditionMode.Deny so the wallet will reject
 //   any token transfer that is not explicitly declared. Functions that move
