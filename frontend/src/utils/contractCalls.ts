@@ -801,7 +801,8 @@ export async function disputeEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Escrow disputed:', data);
                 const txId = data.txId;
@@ -833,7 +834,8 @@ export async function completeEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Escrow completed:', data);
                 const txId = data.txId;
