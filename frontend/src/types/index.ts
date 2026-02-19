@@ -36,6 +36,8 @@ export interface ResearcherProfile {
     isVerified: boolean;
 }
 
+export type DisputeStatus = 'open' | 'resolved' | 'rejected';
+
 export interface Dispute {
     id: number;
     submissionId: number;
@@ -44,7 +46,7 @@ export interface Dispute {
     createdAt: number;
     votesFor: number;
     votesAgainst: number;
-    status: 'open' | 'resolved'; // max 8 chars
+    status: DisputeStatus;
     resolvedAt?: number;
 }
 
