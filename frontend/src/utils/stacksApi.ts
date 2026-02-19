@@ -2,7 +2,26 @@
  * Stacks API utilities for checking transaction status
  */
 
-const STACKS_API_URL = 'https://api.mainnet.hiro.so';
+import { NETWORK_MODE } from '@/config/network';
+
+function resolveApiUrl(): string {
+    switch (NETWORK_MODE) {
+        case 'mainnet':
+            return 'https://api.mainnet.hiro.so';
+        case 'testnet':
+            return 'https://api.testnet.hiro.so';
+        case 'devnet':
+            return 'http://localhost:3999';
+        default:
+            return 'https://api.testnet.hiro.so';
+    }
+}
+
+const STACKS_API_URL = resolveApiUrl();
+
+if (import.meta.env.DEV) {
+    console.log(`[stacksApi] Using ${NETWORK_MODE} API: ${STACKS_API_URL}`);
+}
 
 export interface StacksTransactionResponse {
     tx_id: string;
