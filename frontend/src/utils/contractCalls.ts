@@ -742,10 +742,21 @@ export async function activateEscrow(
 export async function releaseMilestone(
     escrowId: number,
     milestoneIndex: number,
+    milestoneAmount: number,
     senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The contract pays the worker for this milestone
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            ESCROW_CONTRACT,
+            FungibleConditionCode.Equal,
+            milestoneAmount
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -757,7 +768,8 @@ export async function releaseMilestone(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Milestone released:', data);
                 const txId = data.txId;
