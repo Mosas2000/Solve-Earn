@@ -687,7 +687,8 @@ export async function addMilestone(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Milestone added:', data);
                 const txId = data.txId;
@@ -719,7 +720,8 @@ export async function activateEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Escrow activated:', data);
                 const txId = data.txId;
