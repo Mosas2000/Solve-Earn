@@ -13,6 +13,7 @@
 (define-constant err-self-escrow (err u406))
 (define-constant err-deadline-passed (err u407))
 (define-constant err-milestone-limit (err u408))
+(define-constant err-exceeds-total (err u409))
 
 (define-constant MAX-MILESTONES u10)
 
@@ -26,6 +27,7 @@
         worker: principal,
         total-amount: uint,
         released-amount: uint,
+        committed-amount: uint,
         status: (string-ascii 10),
         created-at: uint,
         deadline: uint,
@@ -69,6 +71,7 @@
                 worker: worker,
                 total-amount: total-amount,
                 released-amount: u0,
+                committed-amount: u0,
                 status: "pending",
                 created-at: block-height,
                 deadline: deadline,
@@ -99,11 +102,14 @@
         (
             (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
             (current-count (get milestone-count escrow))
+            (new-committed (+ (get committed-amount escrow) amount))
         )
         (asserts! (is-eq tx-sender (get employer escrow)) err-unauthorized)
         (asserts! (is-eq (get status escrow) "pending") err-invalid-status)
         (asserts! (< current-count MAX-MILESTONES) err-milestone-limit)
         (asserts! (> amount u0) err-insufficient-funds)
+        ;; Milestone amounts cannot exceed the total escrow amount
+        (asserts! (<= new-committed (get total-amount escrow)) err-exceeds-total)
         (map-set milestones
             { escrow-id: escrow-id, milestone-index: current-count }
             {
@@ -115,7 +121,7 @@
         )
         (map-set escrows
             { escrow-id: escrow-id }
-            (merge escrow { milestone-count: (+ current-count u1) })
+            (merge escrow { milestone-count: (+ current-count u1), committed-amount: new-committed })
         )
         (ok current-count)
     )
@@ -268,6 +274,15 @@
 
 (define-read-only (get-milestone (escrow-id uint) (milestone-index uint))
     (map-get? milestones { escrow-id: escrow-id, milestone-index: milestone-index })
+)
+
+(define-read-only (get-remaining-committable (escrow-id uint))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+        )
+        (ok (- (get total-amount escrow) (get committed-amount escrow)))
+    )
 )
 
 (define-read-only (get-total-escrows)
