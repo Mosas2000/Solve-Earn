@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useStacks } from '../hooks/useStacks';
-import { createBounty } from '../utils/contractCalls';
+import { useStacks } from '@/hooks/useStacks';
+import { createBounty } from '@/utils/contractCalls';
 import { useToast } from './ToastProvider';
-import type { CreateBountyForm } from '../types';
+import type { CreateBountyForm } from '@/types';
 
 export function CreateBounty() {
     const { address, isConnected } = useStacks();
