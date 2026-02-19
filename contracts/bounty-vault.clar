@@ -12,6 +12,7 @@
 (define-constant err-arbiter-required (err u209))
 (define-constant err-not-registered-arbiter (err u210))
 (define-constant err-already-confirmed (err u211))
+(define-constant err-not-pending (err u212))
 (define-constant MAX-SUBMISSIONS-PER-RESEARCHER u3)
 (define-constant DEFAULT-APPROVAL-DELAY u10)
 (define-constant DEFAULT-HIGH-VALUE-THRESHOLD u5000000)
@@ -198,6 +199,8 @@
             (reward (get reward-amount submission))
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        ;; Submission must still be pending
+        (asserts! (is-eq (get status submission) "pending") err-not-pending)
         ;; Enforce cooling period: cannot approve until approval-delay blocks after submission
         (asserts! (>= block-height (+ (get submitted-at submission) (var-get approval-delay))) err-approval-too-early)
         (asserts! (>= (get remaining-pool bounty) reward) err-insufficient-funds)
@@ -238,6 +241,8 @@
             (bounty (unwrap! (map-get? bounties { bounty-id: bounty-id }) err-bounty-not-found))
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        ;; Submission must still be pending
+        (asserts! (is-eq (get status submission) "pending") err-not-pending)
         (map-set submissions
             { submission-id: submission-id }
             (merge submission { status: "rejected" })
@@ -261,6 +266,8 @@
         )
         ;; Must be a registered arbiter in the dispute-resolver contract
         (asserts! (contract-call? .dispute-resolver is-registered-arbiter tx-sender) err-not-registered-arbiter)
+        ;; Submission must still be pending to confirm
+        (asserts! (is-eq (get status submission) "pending") err-not-pending)
         ;; Arbiter cannot be the project owner (prevents self-dealing)
         (asserts! (not (is-eq tx-sender (get project bounty))) err-unauthorized)
         ;; Arbiter cannot be the submitting researcher
