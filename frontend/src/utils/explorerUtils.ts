@@ -9,7 +9,7 @@ function resolveExplorerBaseUrl(): string {
         case 'mainnet':
             return 'https://explorer.hiro.so';
         case 'testnet':
-            return 'https://explorer.hiro.so/?chain=testnet';
+            return 'https://explorer.hiro.so';
         case 'devnet':
             return 'http://localhost:8000';
         default:
@@ -20,12 +20,20 @@ function resolveExplorerBaseUrl(): string {
 const EXPLORER_BASE_URL = resolveExplorerBaseUrl();
 
 /**
+ * Returns the query string suffix for the current network.
+ * Testnet URLs require ?chain=testnet appended after the path.
+ */
+function networkQuerySuffix(): string {
+    return NETWORK_MODE === 'testnet' ? '?chain=testnet' : '';
+}
+
+/**
  * Get the Stacks Explorer URL for a transaction
  * @param txId - Transaction ID
  * @returns Full URL to the transaction on Stacks Explorer
  */
 export function getExplorerTxUrl(txId: string): string {
-    return `${EXPLORER_BASE_URL}/txid/${txId}`;
+    return `${EXPLORER_BASE_URL}/txid/${txId}${networkQuerySuffix()}`;
 }
 
 /**
@@ -34,7 +42,7 @@ export function getExplorerTxUrl(txId: string): string {
  * @returns Full URL to the address on Stacks Explorer
  */
 export function getExplorerAddressUrl(address: string): string {
-    return `${EXPLORER_BASE_URL}/address/${address}`;
+    return `${EXPLORER_BASE_URL}/address/${address}${networkQuerySuffix()}`;
 }
 
 /**
@@ -44,7 +52,7 @@ export function getExplorerAddressUrl(address: string): string {
  * @returns Full URL to the contract on Stacks Explorer
  */
 export function getExplorerContractUrl(contractAddress: string, contractName: string): string {
-    return `${EXPLORER_BASE_URL}/txid/${contractAddress}.${contractName}`;
+    return `${EXPLORER_BASE_URL}/txid/${contractAddress}.${contractName}${networkQuerySuffix()}`;
 }
 
 /**
@@ -53,7 +61,7 @@ export function getExplorerContractUrl(contractAddress: string, contractName: st
  * @returns Full URL to the block on Stacks Explorer
  */
 export function getExplorerBlockUrl(blockHeight: number): string {
-    return `${EXPLORER_BASE_URL}/block/${blockHeight}`;
+    return `${EXPLORER_BASE_URL}/block/${blockHeight}${networkQuerySuffix()}`;
 }
 
 /**
