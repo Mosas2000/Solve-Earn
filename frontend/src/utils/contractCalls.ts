@@ -287,6 +287,100 @@ export async function getSubmission(submissionId: number, senderAddress: string)
     }
 }
 
+// ---------------------------------------------------------------------------
+// Arbiter confirmation flow
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch the approval-confirmation record for a given submission.
+ * Returns null when no arbiter has confirmed yet.
+ */
+export async function getApprovalConfirmation(submissionId: number, senderAddress: string) {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-approval-confirmation',
+            functionArgs: [uintCV(submissionId)],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        // This read-only returns (optional ...) — a none value means unconfirmed
+        if (!parsed || parsed.value === null || parsed.value === undefined) {
+            return null;
+        }
+        return parsed;
+    } catch (error) {
+        console.error(`getApprovalConfirmation(${submissionId}) failed:`, error);
+        return null;
+    }
+}
+
+/**
+ * Fetch the current high-value threshold from the contract.
+ */
+export async function getHighValueThreshold(senderAddress: string): Promise<number> {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'get-high-value-threshold',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        return parsed?.value?.value ?? 5_000_000;
+    } catch (error) {
+        console.error('getHighValueThreshold failed:', error);
+        return 5_000_000; // fallback to default
+    }
+}
+
+/**
+ * Arbiter confirms a high-value submission for approval.
+ */
+export async function confirmApproval(
+    submissionId: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void,
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: BOUNTY_CONTRACT,
+            functionName: 'confirm-approval',
+            functionArgs: [uintCV(submissionId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
+            onFinish: (data: any) => {
+                const txId = data?.txId || data?.txid || '';
+                if (txId) {
+                    transactionTracker.track(txId, `Confirm approval for submission #${submissionId}`);
+                }
+                onSuccess?.();
+                resolve(txId);
+            },
+            onCancel: () => {
+                onError?.('Transaction cancelled by user');
+                reject(new Error('Transaction cancelled'));
+            },
+        };
+
+        openContractCall(txOptions).catch((err) => {
+            const msg = err instanceof Error ? err.message : 'Failed to confirm approval';
+            onError?.(msg);
+            reject(err);
+        });
+    });
+}
+
 export async function getTotalBounties(senderAddress: string) {
     try {
         const result = await callReadOnlyFunction({
