@@ -71,6 +71,26 @@
     )
 )
 
+;; Deactivate an arbiter. Only callable by the contract owner.
+(define-public (deactivate-arbiter (arbiter-address principal))
+    (let
+        (
+            (arbiter-data (unwrap! (map-get? arbiters { arbiter: arbiter-address }) err-not-arbiter))
+        )
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (map-set arbiters
+            { arbiter: arbiter-address }
+            (merge arbiter-data { is-active: false })
+        )
+        (print {
+            event: "arbiter-deactivated",
+            arbiter: arbiter-address,
+            block-height: block-height
+        })
+        (ok true)
+    )
+)
+
 (define-public (create-dispute 
     (submission-id uint)
     (reason (string-utf8 100))
