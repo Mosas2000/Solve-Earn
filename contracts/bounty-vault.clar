@@ -13,9 +13,12 @@
 (define-constant err-not-registered-arbiter (err u210))
 (define-constant err-already-confirmed (err u211))
 (define-constant err-not-pending (err u212))
+(define-constant err-bounty-still-active (err u213))
 (define-constant MAX-SUBMISSIONS-PER-RESEARCHER u3)
 (define-constant DEFAULT-APPROVAL-DELAY u10)
 (define-constant DEFAULT-HIGH-VALUE-THRESHOLD u5000000)
+;; Grace period after bounty expiry before it can be closed (approx 1 day)
+(define-constant CLOSE-GRACE-PERIOD u144)
 
 (define-data-var bounty-nonce uint u0)
 (define-data-var submission-nonce uint u0)
@@ -298,6 +301,9 @@
             (remaining (get remaining-pool bounty))
         )
         (asserts! (is-eq tx-sender (get project bounty)) err-unauthorized)
+        ;; Can only close after the bounty has expired plus a grace period,
+        ;; giving researchers time to finalize pending submissions
+        (asserts! (>= block-height (+ (get expires-at bounty) CLOSE-GRACE-PERIOD)) err-bounty-still-active)
         (if (> remaining u0)
             (begin
                 (try! (as-contract (stx-transfer? remaining tx-sender (get project bounty))))
@@ -316,6 +322,12 @@
             { bounty-id: bounty-id }
             (merge bounty { is-active: false })
         )
+        (print {
+            event: "bounty-closed",
+            bounty-id: bounty-id,
+            refunded: remaining,
+            block-height: block-height
+        })
         (ok remaining)
     )
 )
