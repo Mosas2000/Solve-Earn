@@ -1,6 +1,31 @@
 # Solve-Earn Scripts
 
-Scripts for interacting with deployed Solve-Earn contracts on mainnet.
+Scripts for interacting with deployed Solve-Earn contracts.
+
+## Network Configuration
+
+All scripts read the `STACKS_NETWORK` environment variable to decide which
+network to target. Supported values: `mainnet`, `testnet`, `devnet`.
+
+```bash
+# Target testnet (recommended during development)
+export STACKS_NETWORK=testnet
+
+# Target mainnet
+export STACKS_NETWORK=mainnet
+
+# Target local devnet (Clarinet)
+export STACKS_NETWORK=devnet
+```
+
+When `STACKS_NETWORK` is not set, scripts default to **mainnet** for backward
+compatibility.
+
+You can also override the contract address with `CONTRACT_ADDRESS`:
+
+```bash
+export CONTRACT_ADDRESS="SP_YOUR_CUSTOM_ADDRESS"
+```
 
 ## Deployed Contracts (Mainnet)
 
@@ -16,7 +41,7 @@ npm install @stacks/transactions @stacks/network ts-node typescript
 
 ## Create Demo Bounty
 
-Creates a real bounty on mainnet (costs ~10 STX + fees).
+Creates a real bounty on the configured network (costs ~10 STX + fees on mainnet).
 
 ```bash
 # Set your private key
