@@ -266,6 +266,8 @@
         )
         ;; Must be a registered arbiter in the dispute-resolver contract
         (asserts! (contract-call? .dispute-resolver is-registered-arbiter tx-sender) err-not-registered-arbiter)
+        ;; Submission must still be pending to confirm
+        (asserts! (is-eq (get status submission) "pending") err-not-pending)
         ;; Arbiter cannot be the project owner (prevents self-dealing)
         (asserts! (not (is-eq tx-sender (get project bounty))) err-unauthorized)
         ;; Arbiter cannot be the submitting researcher
