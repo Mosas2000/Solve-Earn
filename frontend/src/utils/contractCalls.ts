@@ -1,3 +1,13 @@
+// ---------------------------------------------------------------------------
+// Contract interaction layer
+//
+// Post-condition policy:
+//   Every transaction uses PostConditionMode.Deny so the wallet will reject
+//   any token transfer that is not explicitly declared. Functions that move
+//   STX attach a post-condition specifying the exact (or maximum) amount,
+//   while non-transfer operations use an empty post-conditions array.
+// ---------------------------------------------------------------------------
+
 import { openContractCall } from '@stacks/connect';
 import {
     AnchorMode,
