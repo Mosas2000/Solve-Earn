@@ -855,10 +855,21 @@ export async function completeEscrow(
 
 export async function refundEscrow(
     escrowId: number,
+    expectedRefund: number,
     senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The contract refunds remaining funds back to the employer
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            ESCROW_CONTRACT,
+            FungibleConditionCode.LessEqual,
+            expectedRefund
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -867,7 +878,8 @@ export async function refundEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Escrow refunded:', data);
                 const txId = data.txId;
