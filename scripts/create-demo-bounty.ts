@@ -14,8 +14,10 @@ import {
 } from '@stacks/transactions';
 import { StacksMainnet } from '@stacks/network';
 
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+// Use shared network config (CommonJS require for compatibility)
+const networkConfig = require('./network-config');
+const network = networkConfig.network;
+const CONTRACT_ADDRESS: string = networkConfig.CONTRACT_ADDRESS;
 const BOUNTY_CONTRACT = 'bounty-vault';
 
 // Your wallet private key (KEEP THIS SECURE!)

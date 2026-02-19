@@ -17,8 +17,7 @@ const {
 const { StacksMainnet } = require('@stacks/network');
 require('dotenv').config();
 
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+const { network, CONTRACT_ADDRESS, NETWORK_LABEL } = require('./network-config');
 
 // Read private key from environment variable
 // IMPORTANT: Never commit your private key!
