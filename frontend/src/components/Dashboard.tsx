@@ -98,9 +98,6 @@ export function Dashboard() {
                 console.error('Could not get totals:', err);
                 setError('Failed to fetch data counts from blockchain. Using default values.');
             }
-            } catch (err) {
-                console.log('Could not get totals, using defaults');
-            }
 
             // Fetch all bounties and submissions in parallel
             const bountyIds = Array.from({ length: totalBountyCount }, (_, i) => i + 1);
