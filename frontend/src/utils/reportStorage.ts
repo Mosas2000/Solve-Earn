@@ -1,4 +1,4 @@
-import type { VulnerabilityReport, StoredReport } from '../types';
+import type { VulnerabilityReport, StoredReport } from '@/types';
 
 /**
  * Off-chain storage for vulnerability reports using localStorage.

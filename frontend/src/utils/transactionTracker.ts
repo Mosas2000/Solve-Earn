@@ -2,7 +2,7 @@
  * Transaction tracker for managing pending transactions and their status
  */
 
-import type { TransactionInfo, PendingTransaction, TransactionStatus } from '../types';
+import type { TransactionInfo, PendingTransaction, TransactionStatus } from '@/types';
 import { checkTransactionStatus } from './stacksApi';
 import { getExplorerTxUrl } from './explorerUtils';
 
