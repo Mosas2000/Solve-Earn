@@ -322,6 +322,12 @@
             { bounty-id: bounty-id }
             (merge bounty { is-active: false })
         )
+        (print {
+            event: "bounty-closed",
+            bounty-id: bounty-id,
+            refunded: remaining,
+            block-height: block-height
+        })
         (ok remaining)
     )
 )
