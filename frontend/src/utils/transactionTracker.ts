@@ -7,6 +7,8 @@ import { checkTransactionStatus } from './stacksApi';
 import { getExplorerTxUrl } from './explorerUtils';
 
 class TransactionTracker {
+    private static readonly MAX_HISTORY = 50;
+
     private pendingTransactions: Map<string, PendingTransaction> = new Map();
     private transactionHistory: TransactionInfo[] = [];
     private pollingInterval: NodeJS.Timeout | null = null;
@@ -35,6 +37,12 @@ class TransactionTracker {
 
         this.pendingTransactions.set(txId, pendingTx);
 
+        // Skip if this txId is already in history (duplicate call)
+        if (this.transactionHistory.some(tx => tx.txId === txId)) {
+            this.notifyListeners();
+            return;
+        }
+
         // Add to history immediately as "broadcasting"
         const txInfo: TransactionInfo = {
             txId,
@@ -44,6 +52,11 @@ class TransactionTracker {
             explorerUrl: getExplorerTxUrl(txId),
         };
         this.transactionHistory.unshift(txInfo);
+
+        // Trim history to prevent unbounded growth
+        if (this.transactionHistory.length > TransactionTracker.MAX_HISTORY) {
+            this.transactionHistory = this.transactionHistory.slice(0, TransactionTracker.MAX_HISTORY);
+        }
 
         // Start polling if not already running
         if (!this.pollingInterval) {
