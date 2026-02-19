@@ -113,6 +113,18 @@
                 votes-against: (if vote-for (get votes-against dispute) (+ (get votes-against dispute) u1))
             })
         )
+        ;; Increment the arbiter's total-votes counter
+        (map-set arbiters
+            { arbiter: tx-sender }
+            (merge arbiter { total-votes: (+ (get total-votes arbiter) u1) })
+        )
+        (print {
+            event: "dispute-vote",
+            dispute-id: dispute-id,
+            arbiter: tx-sender,
+            vote-for: vote-for,
+            block-height: block-height
+        })
         (ok true)
     )
 )
