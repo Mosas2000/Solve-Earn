@@ -232,20 +232,6 @@ export async function rejectSubmission(
         openContractCall(txOptions);
     });
 }
-network,
-    anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-            onFinish: (data: any) => {
-                console.log('Transaction sent:', data);
-            },
-                onCancel: () => {
-                    console.log('Transaction canceled');
-                },
-    };
-
-await openContractCall(txOptions);
-return 'pending';
-}
 
 export async function getBounty(bountyId: number, senderAddress: string) {
     try {
@@ -285,16 +271,6 @@ export async function getSubmission(submissionId: number, senderAddress: string)
         console.error(`getSubmission(${submissionId}) failed:`, error);
         throw new Error(`Failed to fetch submission #${submissionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-}
-contractAddress: CONTRACT_ADDRESS,
-    contractName: BOUNTY_CONTRACT,
-        functionName: 'get-submission',
-            functionArgs: [uintCV(submissionId)],
-                network,
-                senderAddress,
-    });
-
-return cvToJSON(result);
 }
 
 export async function getTotalBounties(senderAddress: string) {
@@ -400,7 +376,6 @@ export async function getResearcherProfile(
         console.error(`getResearcherProfile(${researcher}) failed:`, error);
         throw new Error(`Failed to fetch researcher profile for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-} return cvToJSON(result);
 }
 
 export async function getReputationScore(
