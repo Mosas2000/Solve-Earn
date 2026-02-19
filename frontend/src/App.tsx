@@ -1,14 +1,14 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { useStacks } from './hooks/useStacks';
-import { CreateBounty } from './components/CreateBounty';
-import { BountyList } from './components/BountyList';
-import { Leaderboard } from './components/Leaderboard';
-import { Dashboard } from './components/Dashboard';
-import { ManageSubmissions } from './components/ManageSubmissions';
-import { EscrowPage } from './components/escrow/EscrowPage';
-import { ToastProvider } from './components/ToastProvider';
-import { TransactionStatusNotifications } from './components/TransactionStatusNotifications';
-import './App.css';
+import { useStacks } from '@/hooks/useStacks';
+import { CreateBounty } from '@/components/CreateBounty';
+import { BountyList } from '@/components/BountyList';
+import { Leaderboard } from '@/components/Leaderboard';
+import { Dashboard } from '@/components/Dashboard';
+import { ManageSubmissions } from '@/components/ManageSubmissions';
+import { EscrowPage } from '@/components/escrow/EscrowPage';
+import { ToastProvider } from '@/components/ToastProvider';
+import { TransactionStatusNotifications } from '@/components/TransactionStatusNotifications';
+import '@/App.css';
 
 function App() {
     const { connect, disconnect, isConnected, address } = useStacks();

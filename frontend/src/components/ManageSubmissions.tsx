@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useStacks } from '../hooks/useStacks';
-import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '../utils/contractCalls';
-import { getReport } from '../utils/reportStorage';
+import { useStacks } from '@/hooks/useStacks';
+import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '@/utils/contractCalls';
+import { getReport } from '@/utils/reportStorage';
 import { useToast } from './ToastProvider';
-import type { Submission, StoredReport } from '../types';
-import '../styles/ErrorStates.css';
-import '../styles/ReportDisplay.css';
+import type { Submission, StoredReport } from '@/types';
+import '@/styles/ErrorStates.css';
+import '@/styles/ReportDisplay.css';
 
 interface SubmissionWithBounty extends Submission {
     bountyTitle?: string;

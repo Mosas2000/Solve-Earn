@@ -12,7 +12,7 @@ import {
     boolCV,
 } from '@stacks/transactions';
 import { StacksMainnet } from '@stacks/network';
-import type { CreateBountyForm, SeverityLevel } from '../types';
+import type { CreateBountyForm, SeverityLevel } from '@/types';
 import { transactionTracker } from './transactionTracker';
 import { getExplorerTxUrl } from './explorerUtils';
 

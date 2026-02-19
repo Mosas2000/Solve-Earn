@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { transactionTracker } from '../utils/transactionTracker';
-import { openTxInExplorer } from '../utils/explorerUtils';
-import type { TransactionInfo } from '../types';
-import '../styles/TransactionStatus.css';
+import { transactionTracker } from '@/utils/transactionTracker';
+import { openTxInExplorer } from '@/utils/explorerUtils';
+import type { TransactionInfo } from '@/types';
+import '@/styles/TransactionStatus.css';
 
 export function TransactionStatusNotifications() {
     const [transactions, setTransactions] = useState<TransactionInfo[]>([]);

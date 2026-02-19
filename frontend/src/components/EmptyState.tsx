@@ -1,5 +1,5 @@
 import React from 'react';
-import '../styles/EmptyState.css';
+import '@/styles/EmptyState.css';
 
 interface EmptyStateProps {
   icon?: string;

@@ -1,5 +1,5 @@
 import React from 'react';
-import '../styles/StatsDashboard.css';
+import '@/styles/StatsDashboard.css';
 
 interface StatCardData {
   title: string;

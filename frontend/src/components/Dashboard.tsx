@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useStacks } from '../hooks/useStacks';
+import { useStacks } from '@/hooks/useStacks';
 import {
     getResearcherProfile,
     calculateSuccessRate,
@@ -8,9 +8,9 @@ import {
     getSubmission,
     getTotalBounties,
     getTotalSubmissions,
-} from '../utils/contractCalls';
-import type { ResearcherProfile, Submission, Bounty } from '../types';
-import '../styles/ErrorStates.css';
+} from '@/utils/contractCalls';
+import type { ResearcherProfile, Submission, Bounty } from '@/types';
+import '@/styles/ErrorStates.css';
 
 interface DashboardStats {
     myBounties: Bounty[];
