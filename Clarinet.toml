@@ -19,6 +19,9 @@ depends_on = ["reputation", "dispute-resolver"]
 [contracts.dispute-resolver]
 path = "contracts/dispute-resolver.clar"
 
+[contracts.escrow]
+path = "contracts/escrow.clar"
+
 [repl.analysis]
 passes = ["check_checker"]
 

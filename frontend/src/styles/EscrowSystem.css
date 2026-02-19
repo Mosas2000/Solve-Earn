@@ -453,3 +453,62 @@
     gap: 0.75rem;
   }
 }
+
+/* ---------- Escrow Page Layout ---------- */
+
+.escrow-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.escrow-page h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+}
+
+.escrow-page-notice {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* ---------- Escrow Lookup ---------- */
+
+.escrow-lookup {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.escrow-lookup .escrow-input {
+  flex: 1;
+}
+
+.escrow-lookup .escrow-btn {
+  white-space: nowrap;
+}
+
+/* ---------- Escrow Error ---------- */
+
+.escrow-error {
+  background: var(--danger-bg, #fef2f2);
+  border: 1px solid var(--danger-border, #fca5a5);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.escrow-error p {
+  color: var(--danger, #dc2626);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .escrow-lookup {
+    flex-direction: column;
+  }
+}

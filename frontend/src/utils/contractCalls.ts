@@ -21,6 +21,7 @@ const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
 const BOUNTY_CONTRACT = 'bounty-vault';
 const REPUTATION_CONTRACT = 'reputation';
 const DISPUTE_CONTRACT = 'dispute-resolver';
+const ESCROW_CONTRACT = 'escrow';
 
 export async function createBounty(
     formData: CreateBountyForm,
@@ -593,3 +594,308 @@ function extractBoolValue(cv: any, fieldName: string): boolean {
         throw new Error(`Missing or invalid ${fieldName} value`);
     }
     return cv.value;
+}
+
+// ---------------------------------------------------------------------------
+// Escrow contract calls
+// ---------------------------------------------------------------------------
+
+export async function createEscrow(
+    worker: string,
+    totalAmount: number,
+    durationBlocks: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'create-escrow',
+            functionArgs: [
+                principalCV(worker),
+                uintCV(totalAmount),
+                uintCV(durationBlocks),
+            ],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Escrow creation broadcast:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'create-escrow', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Escrow creation canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function addMilestone(
+    escrowId: number,
+    description: string,
+    amount: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'add-milestone',
+            functionArgs: [
+                uintCV(escrowId),
+                stringUtf8CV(description),
+                uintCV(amount),
+            ],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Milestone added:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'add-milestone', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Add milestone canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function activateEscrow(
+    escrowId: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'activate-escrow',
+            functionArgs: [uintCV(escrowId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Escrow activated:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'activate-escrow', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Escrow activation canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function releaseMilestone(
+    escrowId: number,
+    milestoneIndex: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'release-milestone',
+            functionArgs: [
+                uintCV(escrowId),
+                uintCV(milestoneIndex),
+            ],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Milestone released:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'release-milestone', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Milestone release canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function disputeEscrow(
+    escrowId: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'dispute-escrow',
+            functionArgs: [uintCV(escrowId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Escrow disputed:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'dispute-escrow', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Escrow dispute canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function completeEscrow(
+    escrowId: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'complete-escrow',
+            functionArgs: [uintCV(escrowId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Escrow completed:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'complete-escrow', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Escrow completion canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function refundEscrow(
+    escrowId: number,
+    senderAddress: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const txOptions = {
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'refund-escrow',
+            functionArgs: [uintCV(escrowId)],
+            network,
+            anchorMode: AnchorMode.Any,
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data: any) => {
+                console.log('Escrow refunded:', data);
+                const txId = data.txId;
+                transactionTracker.trackTransaction(txId, 'refund-escrow', onSuccess, onError);
+                resolve(txId);
+            },
+            onCancel: () => {
+                const error = 'Escrow refund canceled by user';
+                if (onError) onError(error);
+                reject(new Error(error));
+            },
+        };
+
+        openContractCall(txOptions);
+    });
+}
+
+export async function getEscrow(escrowId: number, senderAddress: string) {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'get-escrow',
+            functionArgs: [uintCV(escrowId)],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getEscrow');
+        return parsed;
+    } catch (error) {
+        console.error(`getEscrow(${escrowId}) failed:`, error);
+        throw new Error(`Failed to fetch escrow #${escrowId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+export async function getMilestone(escrowId: number, milestoneIndex: number, senderAddress: string) {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'get-milestone',
+            functionArgs: [uintCV(escrowId), uintCV(milestoneIndex)],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getMilestone');
+        return parsed;
+    } catch (error) {
+        console.error(`getMilestone(${escrowId}, ${milestoneIndex}) failed:`, error);
+        throw new Error(`Failed to fetch milestone: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+export async function getTotalEscrows(senderAddress: string) {
+    try {
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: ESCROW_CONTRACT,
+            functionName: 'get-total-escrows',
+            functionArgs: [],
+            network,
+            senderAddress,
+        });
+
+        const parsed = cvToJSON(result);
+        validateReadOnlyResponse(parsed, 'getTotalEscrows');
+        return parsed;
+    } catch (error) {
+        console.error('getTotalEscrows failed:', error);
+        throw new Error(`Failed to fetch total escrows count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}

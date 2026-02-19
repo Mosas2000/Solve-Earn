@@ -5,6 +5,7 @@ import { BountyList } from './components/BountyList';
 import { Leaderboard } from './components/Leaderboard';
 import { Dashboard } from './components/Dashboard';
 import { ManageSubmissions } from './components/ManageSubmissions';
+import { EscrowPage } from './components/escrow/EscrowPage';
 import { ToastProvider } from './components/ToastProvider';
 import { TransactionStatusNotifications } from './components/TransactionStatusNotifications';
 import './App.css';
@@ -30,6 +31,7 @@ function App() {
                         <Link to="/leaderboard">Leaderboard</Link>
                         <Link to="/dashboard">Dashboard</Link>
                         <Link to="/submissions">Manage</Link>
+                        <Link to="/escrow">Escrow</Link>
                     </div>
 
                     <div className="nav-actions">
@@ -57,6 +59,7 @@ function App() {
                         <Route path="/leaderboard" element={<Leaderboard />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/submissions" element={<ManageSubmissions />} />
+                        <Route path="/escrow" element={<EscrowPage />} />
                         <Route
                             path="*"
                             element={
@@ -101,4 +104,4 @@ function App() {
     );
 }
 
-export default App;export default App;
+export default App;

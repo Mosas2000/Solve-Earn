@@ -30,6 +30,9 @@ Tracks researcher credibility and historical performance.
 **dispute-resolver.clar**
 Handles conflicts with community arbiter voting.
 
+**escrow.clar**
+Milestone-based escrow system for locked payments between employers and workers. Supports creation, milestone tracking, activation, release, disputes, and refunds.
+
 ### Frontend
 
 React application with Stacks Connect integration for wallet management and contract interactions.
