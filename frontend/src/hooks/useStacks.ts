@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AppConfig, UserSession, showConnect } from '@stacks/connect';
-import { StacksMainnet } from '@stacks/network';
+import { createNetwork, getProfileAddress } from '@/config/network';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
 const userSession = new UserSession({ appConfig });
