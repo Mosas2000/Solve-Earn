@@ -1386,3 +1386,323 @@ Clarinet.test({
         );
     }
 });
+
+// ---------------------------------------------------------------------------
+// Cumulative milestone validation (err-exceeds-total)
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Milestones cannot cumulatively exceed the escrow total",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(10_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'add-milestone', [
+                types.uint(1), types.utf8("Phase 1"), types.uint(6_000_000),
+            ], employer.address),
+        ]);
+
+        // Second milestone would push committed total over 10M
+        let block = chain.mineBlock([
+            Tx.contractCall('escrow', 'add-milestone', [
+                types.uint(1), types.utf8("Phase 2"), types.uint(5_000_000),
+            ], employer.address),
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(409);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Complete-escrow pending milestone guard (err-milestones-pending)
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Cannot complete escrow with unreleased committed milestones",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(10_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'add-milestone', [
+                types.uint(1), types.utf8("Phase 1"), types.uint(4_000_000),
+            ], employer.address),
+            Tx.contractCall('escrow', 'add-milestone', [
+                types.uint(1), types.utf8("Phase 2"), types.uint(3_000_000),
+            ], employer.address),
+            Tx.contractCall('escrow', 'activate-escrow', [types.uint(1)], worker.address),
+            // Release only the first milestone
+            Tx.contractCall('escrow', 'release-milestone', [
+                types.uint(1), types.uint(0),
+            ], employer.address),
+        ]);
+
+        // Try completing with Phase 2 still pending
+        let block = chain.mineBlock([
+            Tx.contractCall('escrow', 'complete-escrow', [types.uint(1)], employer.address),
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(410);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Surplus refund on completion
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Completing escrow refunds uncommitted surplus to employer",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+        const deployer = accounts.get('deployer')!;
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(10_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'add-milestone', [
+                types.uint(1), types.utf8("Only task"), types.uint(7_000_000),
+            ], employer.address),
+            Tx.contractCall('escrow', 'activate-escrow', [types.uint(1)], worker.address),
+            Tx.contractCall('escrow', 'release-milestone', [
+                types.uint(1), types.uint(0),
+            ], employer.address),
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('escrow', 'complete-escrow', [types.uint(1)], employer.address),
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+        // Surplus: 10M - 7M = 3M refunded
+        block.receipts[0].events.expectSTXTransferEvent(
+            3_000_000,
+            `${deployer.address}.escrow`,
+            employer.address
+        );
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Resolve escrow dispute
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "Arbiter can resolve dispute in favour of worker",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+        const arbiter = accounts.get('wallet_3')!;
+
+        // Register arbiter first
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [
+                types.principal(arbiter.address),
+            ], deployer.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(5_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'activate-escrow', [types.uint(1)], worker.address),
+            Tx.contractCall('escrow', 'dispute-escrow', [types.uint(1)], worker.address),
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('escrow', 'resolve-escrow-dispute', [
+                types.uint(1), types.bool(true),
+            ], arbiter.address),
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+    }
+});
+
+Clarinet.test({
+    name: "Arbiter can resolve dispute in favour of employer with refund",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+        const arbiter = accounts.get('wallet_3')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [
+                types.principal(arbiter.address),
+            ], deployer.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(5_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'activate-escrow', [types.uint(1)], worker.address),
+            Tx.contractCall('escrow', 'dispute-escrow', [types.uint(1)], employer.address),
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('escrow', 'resolve-escrow-dispute', [
+                types.uint(1), types.bool(false),
+            ], arbiter.address),
+        ]);
+
+        block.receipts[0].result.expectOk().expectBool(true);
+        // Employer gets refunded the full amount
+        block.receipts[0].events.expectSTXTransferEvent(
+            5_000_000,
+            `${deployer.address}.escrow`,
+            employer.address
+        );
+    }
+});
+
+Clarinet.test({
+    name: "Non-arbiter cannot resolve escrow dispute",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+        const stranger = accounts.get('wallet_3')!;
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(5_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'activate-escrow', [types.uint(1)], worker.address),
+            Tx.contractCall('escrow', 'dispute-escrow', [types.uint(1)], worker.address),
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('escrow', 'resolve-escrow-dispute', [
+                types.uint(1), types.bool(true),
+            ], stranger.address),
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(400);
+    }
+});
+
+Clarinet.test({
+    name: "Cannot resolve non-disputed escrow",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const deployer = accounts.get('deployer')!;
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+        const arbiter = accounts.get('wallet_3')!;
+
+        chain.mineBlock([
+            Tx.contractCall('dispute-resolver', 'register-arbiter', [
+                types.principal(arbiter.address),
+            ], deployer.address),
+        ]);
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(5_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'activate-escrow', [types.uint(1)], worker.address),
+        ]);
+
+        let block = chain.mineBlock([
+            Tx.contractCall('escrow', 'resolve-escrow-dispute', [
+                types.uint(1), types.bool(true),
+            ], arbiter.address),
+        ]);
+
+        block.receipts[0].result.expectErr().expectUint(411);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Read-only: get-remaining-committable
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "get-remaining-committable tracks committed milestone amounts",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(10_000_000),
+                types.uint(1440),
+            ], employer.address),
+        ]);
+
+        let full = chain.callReadOnlyFn(
+            'escrow', 'get-remaining-committable', [types.uint(1)], employer.address
+        );
+        full.result.expectOk().expectUint(10_000_000);
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'add-milestone', [
+                types.uint(1), types.utf8("Phase 1"), types.uint(4_000_000),
+            ], employer.address),
+        ]);
+
+        let partial = chain.callReadOnlyFn(
+            'escrow', 'get-remaining-committable', [types.uint(1)], employer.address
+        );
+        partial.result.expectOk().expectUint(6_000_000);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Read-only: is-disputed
+// ---------------------------------------------------------------------------
+
+Clarinet.test({
+    name: "is-disputed returns false for active and true for disputed escrow",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const employer = accounts.get('wallet_1')!;
+        const worker = accounts.get('wallet_2')!;
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'create-escrow', [
+                types.principal(worker.address),
+                types.uint(5_000_000),
+                types.uint(1440),
+            ], employer.address),
+            Tx.contractCall('escrow', 'activate-escrow', [types.uint(1)], worker.address),
+        ]);
+
+        let before = chain.callReadOnlyFn(
+            'escrow', 'is-disputed', [types.uint(1)], employer.address
+        );
+        before.result.expectOk().expectBool(false);
+
+        chain.mineBlock([
+            Tx.contractCall('escrow', 'dispute-escrow', [types.uint(1)], worker.address),
+        ]);
+
+        let after = chain.callReadOnlyFn(
+            'escrow', 'is-disputed', [types.uint(1)], employer.address
+        );
+        after.result.expectOk().expectBool(true);
+    }
+});
