@@ -352,3 +352,10 @@
 (define-read-only (get-total-escrows)
     (ok (var-get escrow-nonce))
 )
+
+(define-read-only (is-disputed (escrow-id uint))
+    (match (map-get? escrows { escrow-id: escrow-id })
+        escrow (ok (is-eq (get status escrow) "disputed"))
+        err-escrow-not-found
+    )
+)
