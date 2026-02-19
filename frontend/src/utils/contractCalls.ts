@@ -205,7 +205,8 @@ export async function rejectSubmission(
             functionArgs: [uintCV(submissionId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
