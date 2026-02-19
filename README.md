@@ -96,7 +96,23 @@ Visit: http://localhost:5173
 bash scripts/deploy-mainnet.sh
 ```
 
-Update `CONTRACT_ADDRESS` in `frontend/src/utils/contractCalls.ts` with your deployed contract address.
+### Network Configuration
+
+The frontend reads `VITE_STACKS_NETWORK` from environment variables to connect
+to the correct Stacks network. Copy the example env file and set the desired
+network:
+
+```bash
+cd frontend
+cp .env.example .env
+# Edit .env: set VITE_STACKS_NETWORK to mainnet, testnet, or devnet
+```
+
+CLI scripts use `STACKS_NETWORK` (without the `VITE_` prefix):
+
+```bash
+STACKS_NETWORK=testnet node scripts/test-readonly.js
+```
 
 ```bash
 bash scripts/build-frontend.sh
