@@ -34,6 +34,17 @@ export async function createBounty(
 ): Promise<string> {
     const durationBlocks = formData.durationDays * 144;
 
+    const totalPoolMicro = formData.totalPool * 1000000;
+
+    // The sender must transfer exactly the total bounty pool into the contract
+    const postConditions = [
+        makeStandardSTXPostCondition(
+            senderAddress,
+            FungibleConditionCode.Equal,
+            totalPoolMicro
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -42,7 +53,7 @@ export async function createBounty(
             functionArgs: [
                 stringUtf8CV(formData.title),
                 stringUtf8CV(formData.description),
-                uintCV(formData.totalPool * 1000000),
+                uintCV(totalPoolMicro),
                 uintCV(formData.criticalReward * 1000000),
                 uintCV(formData.highReward * 1000000),
                 uintCV(formData.mediumReward * 1000000),
@@ -51,7 +62,8 @@ export async function createBounty(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
