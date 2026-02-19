@@ -209,3 +209,28 @@
         (ok true)
     )
 )
+
+;; Read-only helpers for querying dispute and arbiter state
+
+(define-read-only (get-total-disputes)
+    (ok (var-get dispute-nonce))
+)
+
+(define-read-only (get-active-arbiter-count)
+    (ok (var-get arbiter-count))
+)
+
+(define-read-only (get-arbiter-stats (who principal))
+    (map-get? arbiters { arbiter: who })
+)
+
+(define-read-only (get-arbiter-vote (dispute-id uint) (who principal))
+    (map-get? arbiter-votes { dispute-id: dispute-id, arbiter: who })
+)
+
+(define-read-only (get-voting-deadline (dispute-id uint))
+    (match (map-get? disputes { dispute-id: dispute-id })
+        dispute (ok (+ (get created-at dispute) VOTING-PERIOD))
+        err-dispute-not-found
+    )
+)
