@@ -276,6 +276,15 @@
     (map-get? milestones { escrow-id: escrow-id, milestone-index: milestone-index })
 )
 
+(define-read-only (get-remaining-committable (escrow-id uint))
+    (let
+        (
+            (escrow (unwrap! (map-get? escrows { escrow-id: escrow-id }) err-escrow-not-found))
+        )
+        (ok (- (get total-amount escrow) (get committed-amount escrow)))
+    )
+)
+
 (define-read-only (get-total-escrows)
     (ok (var-get escrow-nonce))
 )
