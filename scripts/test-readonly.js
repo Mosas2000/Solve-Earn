@@ -1,14 +1,11 @@
 // Quick read-only test for deployed contracts
 const { callReadOnlyFunction, cvToJSON } = require('@stacks/transactions');
-const { StacksMainnet } = require('@stacks/network');
-
-const network = new StacksMainnet();
-const CONTRACT_ADDRESS = 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
+const { network, CONTRACT_ADDRESS, NETWORK_LABEL } = require('./network-config');
 
 async function testReadOnly() {
-  console.log('🧪 Testing Deployed Contracts on Mainnet\n');
+  console.log('🧪 Testing Deployed Contracts on ' + NETWORK_LABEL + '\n');
   console.log('📍 Contract:', CONTRACT_ADDRESS);
-  console.log('🌐 Network: Mainnet\n');
+  console.log('🌐 Network: ' + NETWORK_LABEL + '\n');
   
   // Test 1: Get total bounties
   console.log('Test 1: Get Total Bounties');
