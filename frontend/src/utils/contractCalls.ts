@@ -10,6 +10,9 @@ import {
     cvToJSON,
     principalCV,
     boolCV,
+    makeStandardSTXPostCondition,
+    makeContractSTXPostCondition,
+    FungibleConditionCode,
 } from '@stacks/transactions';
 import { StacksMainnet } from '@stacks/network';
 import type { CreateBountyForm, SeverityLevel } from '@/types';
