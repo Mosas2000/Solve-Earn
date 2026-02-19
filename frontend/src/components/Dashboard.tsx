@@ -36,7 +36,8 @@ export function Dashboard() {
         if (isConnected) {
             loadDashboard();
         }
-    }, [isConnected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isConnected, address]);
 
     const loadDashboard = async () => {
         setLoading(true);
