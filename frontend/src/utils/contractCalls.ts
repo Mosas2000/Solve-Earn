@@ -1,3 +1,13 @@
+// ---------------------------------------------------------------------------
+// Contract interaction layer
+//
+// Post-condition policy:
+//   Every transaction uses PostConditionMode.Deny so the wallet will reject
+//   any token transfer that is not explicitly declared. Functions that move
+//   STX attach a post-condition specifying the exact (or maximum) amount,
+//   while non-transfer operations use an empty post-conditions array.
+// ---------------------------------------------------------------------------
+
 import { openContractCall } from '@stacks/connect';
 import {
     AnchorMode,
@@ -10,6 +20,9 @@ import {
     cvToJSON,
     principalCV,
     boolCV,
+    makeStandardSTXPostCondition,
+    makeContractSTXPostCondition,
+    FungibleConditionCode,
 } from '@stacks/transactions';
 import { StacksMainnet } from '@stacks/network';
 import type { CreateBountyForm, SeverityLevel } from '@/types';
@@ -31,6 +44,17 @@ export async function createBounty(
 ): Promise<string> {
     const durationBlocks = formData.durationDays * 144;
 
+    const totalPoolMicro = formData.totalPool * 1000000;
+
+    // The sender must transfer exactly the total bounty pool into the contract
+    const postConditions = [
+        makeStandardSTXPostCondition(
+            senderAddress,
+            FungibleConditionCode.Equal,
+            totalPoolMicro
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -39,7 +63,7 @@ export async function createBounty(
             functionArgs: [
                 stringUtf8CV(formData.title),
                 stringUtf8CV(formData.description),
-                uintCV(formData.totalPool * 1000000),
+                uintCV(totalPoolMicro),
                 uintCV(formData.criticalReward * 1000000),
                 uintCV(formData.highReward * 1000000),
                 uintCV(formData.mediumReward * 1000000),
@@ -48,7 +72,8 @@ export async function createBounty(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
@@ -95,7 +120,8 @@ export async function submitVulnerability(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
@@ -124,10 +150,21 @@ export async function submitVulnerability(
 
 export async function approveSubmission(
     submissionId: number,
+    rewardAmount: number,
     senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The contract pays the researcher, so constrain how much STX leaves it
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            BOUNTY_CONTRACT,
+            FungibleConditionCode.LessEqual,
+            rewardAmount
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -136,7 +173,8 @@ export async function approveSubmission(
             functionArgs: [uintCV(submissionId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
@@ -177,7 +215,8 @@ export async function rejectSubmission(
             functionArgs: [uintCV(submissionId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Transaction broadcast:', data);
                 const txId = data.txId;
@@ -202,20 +241,6 @@ export async function rejectSubmission(
 
         openContractCall(txOptions);
     });
-}
-network,
-    anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
-            onFinish: (data: any) => {
-                console.log('Transaction sent:', data);
-            },
-                onCancel: () => {
-                    console.log('Transaction canceled');
-                },
-    };
-
-await openContractCall(txOptions);
-return 'pending';
 }
 
 export async function getBounty(bountyId: number, senderAddress: string) {
@@ -256,16 +281,6 @@ export async function getSubmission(submissionId: number, senderAddress: string)
         console.error(`getSubmission(${submissionId}) failed:`, error);
         throw new Error(`Failed to fetch submission #${submissionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-}
-contractAddress: CONTRACT_ADDRESS,
-    contractName: BOUNTY_CONTRACT,
-        functionName: 'get-submission',
-            functionArgs: [uintCV(submissionId)],
-                network,
-                senderAddress,
-    });
-
-return cvToJSON(result);
 }
 
 export async function getTotalBounties(senderAddress: string) {
@@ -308,7 +323,17 @@ export async function getTotalSubmissions(senderAddress: string) {
     }
 }
 
-export async function closeBounty(bountyId: number, senderAddress: string) {
+export async function closeBounty(bountyId: number, remainingPool: number, senderAddress: string) {
+    // The contract refunds up to remainingPool STX back to the bounty owner
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            BOUNTY_CONTRACT,
+            FungibleConditionCode.LessEqual,
+            remainingPool
+        ),
+    ];
+
     const txOptions = {
         contractAddress: CONTRACT_ADDRESS,
         contractName: BOUNTY_CONTRACT,
@@ -316,7 +341,8 @@ export async function closeBounty(bountyId: number, senderAddress: string) {
         functionArgs: [uintCV(bountyId)],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions,
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
@@ -337,7 +363,8 @@ export async function registerResearcher(senderAddress: string) {
         functionArgs: [],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
@@ -371,7 +398,6 @@ export async function getResearcherProfile(
         console.error(`getResearcherProfile(${researcher}) failed:`, error);
         throw new Error(`Failed to fetch researcher profile for ${researcher}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-} return cvToJSON(result);
 }
 
 export async function getReputationScore(
@@ -473,7 +499,8 @@ export async function registerArbiter(senderAddress: string) {
         functionArgs: [],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
@@ -498,7 +525,8 @@ export async function createDispute(
         functionArgs: [uintCV(submissionId), stringUtf8CV(reason)],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
@@ -523,7 +551,8 @@ export async function voteOnDispute(
         functionArgs: [uintCV(disputeId), boolCV(vote)],
         network,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [],
         onFinish: (data: any) => {
             console.log('Transaction sent:', data);
         },
@@ -608,6 +637,15 @@ export async function createEscrow(
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The sender must transfer exactly totalAmount into the escrow contract
+    const postConditions = [
+        makeStandardSTXPostCondition(
+            senderAddress,
+            FungibleConditionCode.Equal,
+            totalAmount
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -620,7 +658,8 @@ export async function createEscrow(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Escrow creation broadcast:', data);
                 const txId = data.txId;
@@ -658,7 +697,8 @@ export async function addMilestone(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Milestone added:', data);
                 const txId = data.txId;
@@ -690,7 +730,8 @@ export async function activateEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Escrow activated:', data);
                 const txId = data.txId;
@@ -711,10 +752,21 @@ export async function activateEscrow(
 export async function releaseMilestone(
     escrowId: number,
     milestoneIndex: number,
+    milestoneAmount: number,
     senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The contract pays the worker for this milestone
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            ESCROW_CONTRACT,
+            FungibleConditionCode.Equal,
+            milestoneAmount
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -726,7 +778,8 @@ export async function releaseMilestone(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Milestone released:', data);
                 const txId = data.txId;
@@ -758,7 +811,8 @@ export async function disputeEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Escrow disputed:', data);
                 const txId = data.txId;
@@ -790,7 +844,8 @@ export async function completeEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions: [],
             onFinish: (data: any) => {
                 console.log('Escrow completed:', data);
                 const txId = data.txId;
@@ -810,10 +865,21 @@ export async function completeEscrow(
 
 export async function refundEscrow(
     escrowId: number,
+    expectedRefund: number,
     senderAddress: string,
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The contract refunds remaining funds back to the employer
+    const postConditions = [
+        makeContractSTXPostCondition(
+            CONTRACT_ADDRESS,
+            ESCROW_CONTRACT,
+            FungibleConditionCode.LessEqual,
+            expectedRefund
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -822,7 +888,8 @@ export async function refundEscrow(
             functionArgs: [uintCV(escrowId)],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Escrow refunded:', data);
                 const txId = data.txId;

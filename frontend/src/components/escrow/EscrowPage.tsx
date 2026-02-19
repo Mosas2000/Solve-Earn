@@ -165,9 +165,12 @@ export const EscrowPage = () => {
             throw new Error('No pending milestones to release');
         }
 
+        const milestoneAmount = contract.milestones[nextPending].amount;
+
         await releaseMilestone(
             numericId,
             nextPending,
+            milestoneAmount,
             address,
             () => {
                 console.log(`Milestone ${nextPending} released`);

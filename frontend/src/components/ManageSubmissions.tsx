@@ -144,9 +144,15 @@ export function ManageSubmissions() {
     const handleApprove = async (submissionId: number) => {
         setActionLoading(submissionId);
         setError('');
+
+        // Look up the expected reward so we can set a post-condition
+        const sub = submissions.find((s) => s.id === submissionId);
+        const rewardMicro = Math.round((sub?.rewardAmount ?? 0) * 1000000);
+
         try {
             const txId = await approveSubmission(
                 submissionId,
+                rewardMicro,
                 address,
                 () => {
                     // Success callback - transaction confirmed
