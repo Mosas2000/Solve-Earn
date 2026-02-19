@@ -172,11 +172,16 @@ export const EscrowPage = () => {
         }
 
         const milestoneAmount = contract.milestones[nextPending].amount;
+        const milestoneAmountMicro = Math.round(parseFloat(milestoneAmount) * 1_000_000);
+
+        if (isNaN(milestoneAmountMicro) || milestoneAmountMicro <= 0) {
+            throw new Error('Invalid milestone amount');
+        }
 
         await releaseMilestone(
             numericId,
             nextPending,
-            milestoneAmount,
+            milestoneAmountMicro,
             address,
             () => {
                 console.log(`Milestone ${nextPending} released`);
