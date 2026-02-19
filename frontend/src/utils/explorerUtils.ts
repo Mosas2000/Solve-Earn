@@ -5,16 +5,10 @@
 import { NETWORK_MODE } from '@/config/network';
 
 function resolveExplorerBaseUrl(): string {
-    switch (NETWORK_MODE) {
-        case 'mainnet':
-            return 'https://explorer.hiro.so';
-        case 'testnet':
-            return 'https://explorer.hiro.so';
-        case 'devnet':
-            return 'http://localhost:8000';
-        default:
-            return 'https://explorer.hiro.so';
+    if (NETWORK_MODE === 'devnet') {
+        return 'http://localhost:8000';
     }
+    return 'https://explorer.hiro.so';
 }
 
 const EXPLORER_BASE_URL = resolveExplorerBaseUrl();
