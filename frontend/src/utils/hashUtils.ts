@@ -17,8 +17,12 @@ export function bufferToHex(hashBuffer: Uint8Array): string {
  * Convert a hex string to Uint8Array
  * @param hexString - Hex string representation of hash
  * @returns Uint8Array hash buffer
+ * @throws Error if the hex string has an odd length
  */
 export function hexToBuffer(hexString: string): Uint8Array {
+    if (hexString.length % 2 !== 0) {
+        throw new Error('Hex string must have an even number of characters');
+    }
     const bytes = new Uint8Array(hexString.length / 2);
     for (let i = 0; i < hexString.length; i += 2) {
         bytes[i / 2] = parseInt(hexString.substring(i, i + 2), 16);
