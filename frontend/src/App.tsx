@@ -6,6 +6,7 @@ import { Leaderboard } from '@/components/Leaderboard';
 import { Dashboard } from '@/components/Dashboard';
 import { ManageSubmissions } from '@/components/ManageSubmissions';
 import { EscrowPage } from '@/components/escrow/EscrowPage';
+import { ArbiterDashboard } from '@/components/arbiter/ArbiterDashboard';
 import { ToastProvider } from '@/components/ToastProvider';
 import { TransactionStatusNotifications } from '@/components/TransactionStatusNotifications';
 import { NetworkBadge } from '@/components/NetworkBadge';
@@ -33,6 +34,7 @@ function App() {
                         <Link to="/dashboard">Dashboard</Link>
                         <Link to="/submissions">Manage</Link>
                         <Link to="/escrow">Escrow</Link>
+                        <Link to="/arbiter">Arbiter</Link>
                     </div>
 
                     <div className="nav-actions">
@@ -61,6 +63,7 @@ function App() {
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/submissions" element={<ManageSubmissions />} />
                         <Route path="/escrow" element={<EscrowPage />} />
+                        <Route path="/arbiter" element={<ArbiterDashboard />} />
                         <Route
                             path="*"
                             element={

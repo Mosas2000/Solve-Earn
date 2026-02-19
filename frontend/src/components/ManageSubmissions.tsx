@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStacks } from '@/hooks/useStacks';
-import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions } from '@/utils/contractCalls';
+import { getSubmission, approveSubmission, rejectSubmission, getBounty, getTotalSubmissions, getApprovalConfirmation, getHighValueThreshold } from '@/utils/contractCalls';
 import { getReport } from '@/utils/reportStorage';
 import { useToast } from './ToastProvider';
 import type { Submission, StoredReport } from '@/types';
@@ -10,6 +10,8 @@ import '@/styles/ReportDisplay.css';
 interface SubmissionWithBounty extends Submission {
     bountyTitle?: string;
     reportContent?: StoredReport | null;
+    needsArbiterConfirmation?: boolean;
+    arbiterConfirmed?: boolean;
 }
 
 export function ManageSubmissions() {
@@ -32,15 +34,20 @@ export function ManageSubmissions() {
         setLoading(true);
         setError('');
         try {
-            // Get actual submission count from contract
+            // Get submission count and high-value threshold from contract
             let totalSubs = 50;
+            let highValueThreshold = 5_000_000;
             try {
-                const totalResult = await getTotalSubmissions(address);
+                const [totalResult, thresholdVal] = await Promise.all([
+                    getTotalSubmissions(address),
+                    getHighValueThreshold(address),
+                ]);
                 if (!totalResult?.value?.value) {
                     console.warn('getTotalSubmissions returned unexpected format:', totalResult);
                     throw new Error('Invalid response format from getTotalSubmissions');
                 }
                 totalSubs = totalResult.value.value;
+                highValueThreshold = thresholdVal;
             } catch (err) {
                 console.error('Failed to get total submissions count:', err);
                 setError('Failed to fetch submission count. Using default value.');
@@ -111,6 +118,19 @@ export function ManageSubmissions() {
                             }
                         }
                         
+                        const rewardMicro = sub.value['reward-amount']?.value || 0;
+
+                        // Check if this is a high-value submission requiring arbiter confirmation
+                        let needsArbiterConfirmation = false;
+                        let arbiterConfirmed = false;
+                        if (rewardMicro > highValueThreshold) {
+                            needsArbiterConfirmation = true;
+                            const conf = await getApprovalConfirmation(sub.index, address);
+                            if (conf?.value) {
+                                arbiterConfirmed = true;
+                            }
+                        }
+
                         submissionData.push({
                             id: sub.index,
                             bountyId: sub.bountyId,
@@ -119,9 +139,11 @@ export function ManageSubmissions() {
                             reportHash,
                             submittedAt: sub.value['submitted-at']?.value || 0,
                             status: sub.value.status?.value || 'pending',
-                            rewardAmount: (sub.value['reward-amount']?.value || 0) / 1000000,
+                            rewardAmount: rewardMicro / 1000000,
                             bountyTitle: bounty.title?.value || 'Untitled Bounty',
                             reportContent,
+                            needsArbiterConfirmation,
+                            arbiterConfirmed,
                         });
                     }
                 } catch (parseErr) {
@@ -368,10 +390,20 @@ export function ManageSubmissions() {
 
                             {submission.status === 'pending' && (
                                 <div className="submission-actions">
+                                    {submission.needsArbiterConfirmation && !submission.arbiterConfirmed && (
+                                        <p className="arbiter-notice">
+                                            This high-value submission needs arbiter confirmation before you can approve it.
+                                        </p>
+                                    )}
+                                    {submission.needsArbiterConfirmation && submission.arbiterConfirmed && (
+                                        <p className="arbiter-confirmed-notice">
+                                            Arbiter confirmation received. You may now approve this submission.
+                                        </p>
+                                    )}
                                     <button
                                         className="approve-btn"
                                         onClick={() => handleApprove(submission.id)}
-                                        disabled={actionLoading === submission.id}
+                                        disabled={actionLoading === submission.id || (submission.needsArbiterConfirmation && !submission.arbiterConfirmed)}
                                     >
                                         {actionLoading === submission.id ? 'Processing...' : 'Approve'}
                                     </button>
