@@ -57,6 +57,11 @@
             }
         )
         (var-set arbiter-count (+ (var-get arbiter-count) u1))
+        (print {
+            event: "arbiter-registered",
+            arbiter: tx-sender,
+            block-height: block-height
+        })
         (ok true)
     )
 )
@@ -83,6 +88,13 @@
             }
         )
         (var-set dispute-nonce dispute-id)
+        (print {
+            event: "dispute-created",
+            dispute-id: dispute-id,
+            submission-id: submission-id,
+            initiator: tx-sender,
+            block-height: block-height
+        })
         (ok dispute-id)
     )
 )
