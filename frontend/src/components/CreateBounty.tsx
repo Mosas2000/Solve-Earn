@@ -8,6 +8,7 @@ export function CreateBounty() {
     const { address, isConnected } = useStacks();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
+    const [txId, setTxId] = useState<string | null>(null);
     const [formData, setFormData] = useState<CreateBountyForm>({
         title: '',
         description: '',
@@ -40,6 +41,7 @@ export function CreateBounty() {
             );
             
             // Transaction broadcast - show info
+            setTxId(txId);
             showToast('Transaction broadcast! Waiting for confirmation...', 'info');
             console.log('Transaction ID:', txId);
             
@@ -55,6 +57,7 @@ export function CreateBounty() {
                 durationDays: 30,
             });
         } catch (error) {
+            setTxId(null);
             console.error('Failed to create bounty:', error);
             showToast(error instanceof Error ? error.message : 'Failed to create bounty', 'error');
         } finally {
