@@ -627,6 +627,15 @@ export async function createEscrow(
     onSuccess?: () => void,
     onError?: (error: string) => void
 ): Promise<string> {
+    // The sender must transfer exactly totalAmount into the escrow contract
+    const postConditions = [
+        makeStandardSTXPostCondition(
+            senderAddress,
+            FungibleConditionCode.Equal,
+            totalAmount
+        ),
+    ];
+
     return new Promise((resolve, reject) => {
         const txOptions = {
             contractAddress: CONTRACT_ADDRESS,
@@ -639,7 +648,8 @@ export async function createEscrow(
             ],
             network,
             anchorMode: AnchorMode.Any,
-            postConditionMode: PostConditionMode.Allow,
+            postConditionMode: PostConditionMode.Deny,
+            postConditions,
             onFinish: (data: any) => {
                 console.log('Escrow creation broadcast:', data);
                 const txId = data.txId;
