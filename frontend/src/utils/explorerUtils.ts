@@ -28,12 +28,20 @@ function networkQuerySuffix(): string {
 }
 
 /**
+ * Normalize a transaction ID for use in explorer URLs.
+ * The Hiro explorer expects the 0x prefix, so add it if missing.
+ */
+function normalizeTxId(txId: string): string {
+    return txId.startsWith('0x') ? txId : `0x${txId}`;
+}
+
+/**
  * Get the Stacks Explorer URL for a transaction
- * @param txId - Transaction ID
+ * @param txId - Transaction ID (with or without 0x prefix)
  * @returns Full URL to the transaction on Stacks Explorer
  */
 export function getExplorerTxUrl(txId: string): string {
-    return `${EXPLORER_BASE_URL}/txid/${txId}${networkQuerySuffix()}`;
+    return `${EXPLORER_BASE_URL}/txid/${normalizeTxId(txId)}${networkQuerySuffix()}`;
 }
 
 /**
