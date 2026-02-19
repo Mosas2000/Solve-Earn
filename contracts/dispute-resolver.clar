@@ -94,8 +94,14 @@
             (arbiter (unwrap! (map-get? arbiters { arbiter: tx-sender }) err-not-arbiter))
             (existing-vote (map-get? arbiter-votes { dispute-id: dispute-id, arbiter: tx-sender }))
         )
+        ;; Only active arbiters may vote
+        (asserts! (get is-active arbiter) err-arbiter-inactive)
+        ;; Cannot vote on a resolved or rejected dispute
+        (asserts! (is-eq (get status dispute) "open") err-dispute-closed)
+        ;; Cannot vote after the voting period expires
+        (asserts! (< block-height (+ (get created-at dispute) VOTING-PERIOD)) err-dispute-closed)
+        ;; Prevent duplicate votes
         (asserts! (is-none existing-vote) err-already-voted)
-        (asserts! (get is-active arbiter) err-unauthorized)
         (map-set arbiter-votes
             { dispute-id: dispute-id, arbiter: tx-sender }
             { vote: vote-for, voted-at: block-height }
