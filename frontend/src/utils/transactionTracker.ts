@@ -208,7 +208,25 @@ class TransactionTracker {
     private notifyListeners(): void {
         this.listeners.forEach(listener => listener());
     }
+
+    /**
+     * Stop polling and clear all state. Call on teardown to prevent
+     * leaked intervals and dangling callbacks.
+     */
+    destroy(): void {
+        this.stopPolling();
+        this.pendingTransactions.clear();
+        this.listeners.clear();
+    }
 }
 
 // Export singleton instance
 export const transactionTracker = new TransactionTracker();
+
+// Clean up the polling interval when the module is disposed during HMR
+// to prevent multiple intervals stacking up across hot reloads.
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        transactionTracker.destroy();
+    });
+}
