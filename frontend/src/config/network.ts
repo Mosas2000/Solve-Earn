@@ -11,7 +11,7 @@
 //   devnet   - Local devnet via Clarinet
 // ---------------------------------------------------------------------------
 
-import { STACKS_MAINNET, STACKS_TESTNET, STACKS_DEVNET } from '@stacks/network';
+import { StacksMainnet, StacksTestnet, StacksDevnet } from '@stacks/network';
 import type { StacksNetwork } from '@stacks/network';
 
 export type NetworkMode = 'mainnet' | 'testnet' | 'devnet';
@@ -29,12 +29,12 @@ export const NETWORK_MODE: NetworkMode = resolveNetworkMode();
 export function createNetwork(): StacksNetwork {
     switch (NETWORK_MODE) {
         case 'mainnet':
-            return STACKS_MAINNET;
+            return new StacksMainnet();
         case 'devnet':
-            return STACKS_DEVNET;
+            return new StacksDevnet();
         case 'testnet':
         default:
-            return STACKS_TESTNET;
+            return new StacksTestnet();
     }
 }
 
