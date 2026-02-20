@@ -202,7 +202,7 @@ export function ManageSubmissions() {
         }
     };
 
-    const handleReject = async (submissionId: number) {
+    const handleReject = async (submissionId: number) => {
         setActionLoading(submissionId);
         setError('');
         try {
