@@ -58,7 +58,7 @@ const DISPUTE_CONTRACT = 'dispute-resolver';
 const TX_PER_WALLET = 25;    // Stacks mempool allows max 25 unconfirmed TXs per address
 const BASE_FEE = 300;       // uSTX — minimum fee (must cover TX byte size)
 const MAX_FEE = 500;        // uSTX — cap (create-bounty is ~330 bytes, needs ≥330)
-const DELAY_BETWEEN_TX = 1200; // ms between broadcasts per wallet (avoid rate-limits)
+const DELAY_BETWEEN_TX = 1500; // ms between broadcasts per wallet (avoid rate-limits)
 const DELAY_BETWEEN_WALLETS = 3000; // ms between starting each wallet batch
 const API_MAX_RETRIES = 3;   // retries on HTTP 429 rate-limit
 const API_RETRY_BASE_MS = 2000; // base delay for exponential backoff
@@ -628,6 +628,10 @@ async function runWallet(walletIndex, privateKey, isDeployer) {
     let failed = 0;
     let currentNonce = nonce;
 
+    let consecutiveFailures = 0;
+    const MAX_CONSECUTIVE_FAILURES = 3;
+    const BADNONCE_RETRY_DELAY = 3000; // ms to wait before retrying after BadNonce
+
     for (let i = 0; i < plan.length; i++) {
         const tx = plan[i];
 
@@ -635,22 +639,46 @@ async function runWallet(walletIndex, privateKey, isDeployer) {
             const result = await broadcastTx(privateKey, tx, currentNonce);
             if (result.success) {
                 sent++;
-                currentNonce++; // only increment nonce on successful broadcast
+                currentNonce++;
+                consecutiveFailures = 0;
                 console.log(`  [${i + 1}/${plan.length}] OK  ${tx.label}  fee=${tx.fee}  nonce=${currentNonce - 1}  txid=${result.txid.slice(0, 12)}...`);
             } else {
                 failed++;
                 console.log(`  [${i + 1}/${plan.length}] ERR ${tx.label}  error=${result.error}  reason=${result.reason}`);
-                // On FeeTooLow or BadNonce the nonce was NOT consumed — do not increment.
-                // On TooMuchChaining, stop this wallet entirely.
+
                 if (result.reason === 'TooMuchChaining') {
                     console.log('  Stopping wallet: mempool full (TooMuchChaining).');
                     failed += (plan.length - i - 1);
                     break;
                 }
+
+                if (result.reason === 'BadNonce') {
+                    consecutiveFailures++;
+                    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+                        console.log(`  Stopping wallet: ${consecutiveFailures} consecutive BadNonce — mempool likely saturated.`);
+                        failed += (plan.length - i - 1);
+                        break;
+                    }
+                    // Wait longer before retrying — gives the node time to process pending TXs
+                    console.log(`  BadNonce (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}), waiting ${BADNONCE_RETRY_DELAY}ms before retry...`);
+                    await sleep(BADNONCE_RETRY_DELAY);
+                    i--; // retry this same TX
+                    failed--; // don't double-count the retry
+                    continue;
+                }
+
+                // Other errors (FeeTooLow etc): don't increment nonce, move to next TX
+                consecutiveFailures = 0;
             }
         } catch (err) {
             failed++;
+            consecutiveFailures++;
             console.log(`  [${i + 1}/${plan.length}] EXC ${tx.label}  ${err.message}`);
+            if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+                console.log(`  Stopping wallet: ${consecutiveFailures} consecutive exceptions.`);
+                failed += (plan.length - i - 1);
+                break;
+            }
         }
 
         if (i < plan.length - 1) {
