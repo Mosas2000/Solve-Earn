@@ -7,8 +7,10 @@
     "test": "node test-mainnet.js"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "@stacks/network": "^7.0.1",
     "@stacks/transactions": "^7.0.1",
+    "@stacks/wallet-sdk": "^6.17.0",
     "dotenv": "^16.4.5",
     "ts-node": "^10.9.2"
   }

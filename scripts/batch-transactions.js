@@ -5,10 +5,8 @@
 // deployed contracts (bounty-vault, reputation, dispute-resolver).
 //
 // Usage:
-//   1. Create a .env file in /scripts with private keys:
-//        WALLET_KEY_1=<hex-private-key>
-//        WALLET_KEY_2=<hex-private-key>
-//        ...up to WALLET_KEY_10
+//   1. Add funded wallet mnemonics to settings/Mainnet.toml under
+//      [accounts.wallet-1] through [accounts.wallet-10].
 //
 //   2. Run:
 //        node scripts/batch-transactions.js
@@ -40,15 +38,18 @@ const {
     cvToJSON,
     getNonce,
 } = require('@stacks/transactions');
-const { StacksMainnet } = require('@stacks/network');
+const { STACKS_MAINNET } = require('@stacks/network');
+const { generateWallet } = require('@stacks/wallet-sdk');
+const TOML = require('@iarna/toml');
 const crypto = require('crypto');
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
-const network = new StacksMainnet();
+const network = STACKS_MAINNET;
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || 'SP31PKQVQZVZCK3FM3NH67CGD6G1FMR17VQVS2W5T';
 const BOUNTY_CONTRACT = 'bounty-vault';
 const REPUTATION_CONTRACT = 'reputation';
@@ -146,10 +147,58 @@ async function fetchBalance(address) {
     }
 }
 
-// Derive the STX address from a private key
+// Derive the STX address from a private key (v6 compatible)
 function getAddressFromKey(privateKey) {
-    const { getAddressFromPrivateKey, TransactionVersion } = require('@stacks/transactions');
-    return getAddressFromPrivateKey(privateKey, TransactionVersion.Mainnet);
+    const { getAddressFromPrivateKey } = require('@stacks/transactions');
+    return getAddressFromPrivateKey(privateKey);
+}
+
+// ---------------------------------------------------------------------------
+// TOML wallet loader
+//
+// Reads settings/Mainnet.toml and extracts mnemonics from
+// [accounts.wallet-1] through [accounts.wallet-10]. Derives the
+// first account private key from each mnemonic using @stacks/wallet-sdk.
+// ---------------------------------------------------------------------------
+
+async function loadWalletsFromToml() {
+    const tomlPath = path.resolve(__dirname, '..', 'settings', 'Mainnet.toml');
+    if (!fs.existsSync(tomlPath)) {
+        console.error(`\nMainnet.toml not found at: ${tomlPath}`);
+        console.error('Create it with wallet mnemonics under [accounts.wallet-1] etc.');
+        process.exit(1);
+    }
+
+    const raw = fs.readFileSync(tomlPath, 'utf-8');
+    const config = TOML.parse(raw);
+    const accounts = config.accounts || {};
+
+    // Always include deployer as wallet index 0
+    const wallets = [];
+
+    if (accounts.deployer && accounts.deployer.mnemonic) {
+        const mnemonic = accounts.deployer.mnemonic;
+        if (!mnemonic.startsWith('REPLACE') && !mnemonic.startsWith('$')) {
+            const wallet = await generateWallet({ secretKey: mnemonic, password: '' });
+            const key = wallet.accounts[0].stxPrivateKey;
+            wallets.push({ index: 0, key, label: 'deployer' });
+        }
+    }
+
+    // Load wallet-1 through wallet-10
+    for (let i = 1; i <= 10; i++) {
+        const name = `wallet-${i}`;
+        const acct = accounts[name];
+        if (!acct || !acct.mnemonic) continue;
+        const mnemonic = acct.mnemonic;
+        if (mnemonic.startsWith('REPLACE') || mnemonic.startsWith('$')) continue;
+
+        const wallet = await generateWallet({ secretKey: mnemonic, password: '' });
+        const key = wallet.accounts[0].stxPrivateKey;
+        wallets.push({ index: i, key, label: name });
+    }
+
+    return wallets;
 }
 
 // ---------------------------------------------------------------------------
@@ -564,27 +613,20 @@ async function main() {
     console.log(`  Fee range: ${BASE_FEE}-${MAX_FEE} uSTX`);
     console.log('==========================================================');
 
-    // Collect wallet keys from environment
-    const wallets = [];
-    for (let i = 1; i <= 10; i++) {
-        const key = process.env[`WALLET_KEY_${i}`];
-        if (key && key.length > 0) {
-            wallets.push({ index: i, key });
-        }
-    }
+    // Load wallet keys from settings/Mainnet.toml
+    const wallets = await loadWalletsFromToml();
 
     if (wallets.length === 0) {
-        console.error('\nNo wallet keys found. Set WALLET_KEY_1..WALLET_KEY_10 in your .env file.');
-        console.log('\nExample .env:');
-        console.log('  WALLET_KEY_1=your_hex_private_key_here');
-        console.log('  WALLET_KEY_2=another_hex_private_key_here');
+        console.error('\nNo wallet mnemonics found in settings/Mainnet.toml.');
+        console.error('Add real mnemonics under [accounts.wallet-1] through [accounts.wallet-10].');
         process.exit(1);
     }
 
-    console.log(`\nFound ${wallets.length} wallet(s).`);
+    console.log(`\nFound ${wallets.length} wallet(s): ${wallets.map(w => w.label).join(', ')}`);
 
     // Determine the deployer address so we know which wallet can call governance functions
-    const deployerAddress = getAddressFromKey(wallets[0].key);
+    const deployerWallet = wallets.find(w => w.label === 'deployer');
+    const deployerAddress = deployerWallet ? getAddressFromKey(deployerWallet.key) : null;
 
     // Query initial on-chain state
     console.log('\nQuerying on-chain state...');
@@ -598,7 +640,7 @@ async function main() {
     const summary = { totalSent: 0, totalFailed: 0, totalSkipped: 0 };
 
     for (const wallet of wallets) {
-        const isDeployer = getAddressFromKey(wallet.key) === deployerAddress;
+        const isDeployer = deployerAddress && getAddressFromKey(wallet.key) === deployerAddress;
         const result = await runWallet(wallet.index, wallet.key, isDeployer);
         summary.totalSent += result.sent;
         summary.totalFailed += result.failed;
