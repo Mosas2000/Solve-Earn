@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Batch Transaction Script
 //
-// Sends 30 random on-chain transactions per wallet across the three
+// Sends 25 random on-chain transactions per wallet across the three
 // deployed contracts (bounty-vault, reputation, dispute-resolver).
 //
 // Usage:
@@ -14,7 +14,7 @@
 //      Or dry-run (shows plan without broadcasting):
 //        node scripts/batch-transactions.js --dry-run
 //
-// Fee: 250-300 uSTX per transaction (set by BASE_FEE / MAX_FEE).
+// Fee: 300-500 uSTX per transaction (set by BASE_FEE / MAX_FEE).\n// create-bounty is the largest TX (~330 bytes) and uses fees 380-500.\n//\n// Stacks mainnet limits unconfirmed TX chaining to 25 per address,\n// so TX_PER_WALLET is set to 25.
 //
 // Important: create-bounty transfers STX from the caller into the
 // contract (the bounty pool). Pool amounts are kept intentionally
@@ -55,11 +55,13 @@ const BOUNTY_CONTRACT = 'bounty-vault';
 const REPUTATION_CONTRACT = 'reputation';
 const DISPUTE_CONTRACT = 'dispute-resolver';
 
-const TX_PER_WALLET = 30;
-const BASE_FEE = 250;       // uSTX — minimum fee
-const MAX_FEE = 300;        // uSTX — cap
-const DELAY_BETWEEN_TX = 800; // ms between broadcasts per wallet (avoid rate-limits)
-const DELAY_BETWEEN_WALLETS = 2000; // ms between starting each wallet batch
+const TX_PER_WALLET = 25;    // Stacks mempool allows max 25 unconfirmed TXs per address
+const BASE_FEE = 300;       // uSTX — minimum fee (must cover TX byte size)
+const MAX_FEE = 500;        // uSTX — cap (create-bounty is ~330 bytes, needs ≥330)
+const DELAY_BETWEEN_TX = 1200; // ms between broadcasts per wallet (avoid rate-limits)
+const DELAY_BETWEEN_WALLETS = 3000; // ms between starting each wallet batch
+const API_MAX_RETRIES = 3;   // retries on HTTP 429 rate-limit
+const API_RETRY_BASE_MS = 2000; // base delay for exponential backoff
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Severity options for vulnerability submissions
@@ -122,12 +124,26 @@ function truncAddr(addr) {
     return addr.slice(0, 8) + '...' + addr.slice(-4);
 }
 
+// Fetch with retry (handles 429 rate-limiting)
+async function fetchWithRetry(url, label) {
+    for (let attempt = 0; attempt <= API_MAX_RETRIES; attempt++) {
+        const res = await fetch(url);
+        if (res.ok) return res;
+        if (res.status === 429 && attempt < API_MAX_RETRIES) {
+            const delay = API_RETRY_BASE_MS * Math.pow(2, attempt);
+            console.log(`  Rate-limited (429) on ${label}, retrying in ${delay}ms...`);
+            await sleep(delay);
+            continue;
+        }
+        throw new Error(`HTTP ${res.status}`);
+    }
+}
+
 // Fetch the current on-chain nonce for a given STX address
 async function fetchNonce(address) {
     try {
         const url = `https://api.mainnet.hiro.so/v2/accounts/${address}?proof=0`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetchWithRetry(url, 'nonce');
         const data = await res.json();
         return parseInt(data.nonce, 10);
     } catch (err) {
@@ -140,8 +156,7 @@ async function fetchNonce(address) {
 async function fetchBalance(address) {
     try {
         const url = `https://api.mainnet.hiro.so/v2/accounts/${address}?proof=0`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetchWithRetry(url, 'balance');
         const data = await res.json();
         return parseInt(data.balance, 16);
     } catch (err) {
@@ -225,6 +240,8 @@ function buildRegisterResearcher() {
 function buildCreateBounty() {
     const tpl = randomElement(BOUNTY_TEMPLATES);
     const dur = randomInt(1440, 8640); // 10-60 days in blocks
+    // create-bounty serialises to ~330 bytes — fee must be >= byte count
+    const fee = randomInt(380, MAX_FEE);
     return {
         contractName: BOUNTY_CONTRACT,
         functionName: 'create-bounty',
@@ -238,7 +255,7 @@ function buildCreateBounty() {
             uintCV(tpl.low),
             uintCV(dur),
         ],
-        fee: MAX_FEE, // largest call, use max fee
+        fee,
         label: `Create bounty: ${tpl.title}`,
     };
 }
@@ -273,27 +290,8 @@ function buildCreateDispute(submissionId) {
     };
 }
 
-function buildSetApprovalDelay() {
-    const delay = randomInt(5, 50);
-    return {
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'set-approval-delay',
-        functionArgs: [uintCV(delay)],
-        fee: randomFee(),
-        label: `Set approval delay to ${delay} blocks`,
-    };
-}
-
-function buildSetHighValueThreshold() {
-    const threshold = randomInt(1000000, 10000000);
-    return {
-        contractName: BOUNTY_CONTRACT,
-        functionName: 'set-high-value-threshold',
-        functionArgs: [uintCV(threshold)],
-        fee: randomFee(),
-        label: `Set high-value threshold to ${threshold} uSTX`,
-    };
-}
+// NOTE: set-approval-delay and set-high-value-threshold exist in the contract
+// source but are NOT deployed on mainnet. Removed from transaction mix.
 
 // ---------------------------------------------------------------------------
 // Read-only query builders (used to discover on-chain state)
@@ -448,11 +446,10 @@ async function buildPlan(walletIndex, address, isDeployer) {
     // --- Phase 3: fill remaining slots with a diverse random mix ---
     //
     // Target distribution (approximate):
-    //   create-bounty:          ~20%   (6-7 of 30)
-    //   submit-vulnerability:   ~30%   (9 of 30)
-    //   create-dispute:         ~20%   (6 of 30)
-    //   set-approval-delay:     ~15%   (deployer) or more bounties (non-deployer)
-    //   set-high-value-threshold: ~15% (deployer) or more submits (non-deployer)
+    //   create-bounty:          ~20%   (5 of 25)
+    //   submit-vulnerability:   ~35%   (9 of 25)
+    //   create-dispute:         ~30%   (7 of 25)
+    //   (deployer uses same mix — governance funcs not deployed on mainnet)
 
     while (plan.length < TX_PER_WALLET) {
         const roll = Math.random();
@@ -520,14 +517,6 @@ async function buildPlan(walletIndex, address, isDeployer) {
                 globalState.bountyOwners[globalState.knownBounties] = address;
             }
 
-        } else if (roll < 0.875 && isDeployer) {
-            // Governance: set-approval-delay (deployer only)
-            plan.push(buildSetApprovalDelay());
-
-        } else if (isDeployer) {
-            // Governance: set-high-value-threshold (deployer only)
-            plan.push(buildSetHighValueThreshold());
-
         } else {
             // Non-deployer fallback: submit-vulnerability or create-dispute
             const candidates = [];
@@ -573,7 +562,7 @@ async function broadcastTx(privateKey, txSpec, nonce) {
     };
 
     const transaction = await makeContractCall(txOptions);
-    const result = await broadcastTransaction(transaction, network);
+    const result = await broadcastTransaction({ transaction, network });
 
     if (result.error) {
         return { success: false, error: result.error, reason: result.reason || '' };
@@ -637,19 +626,27 @@ async function runWallet(walletIndex, privateKey, isDeployer) {
 
     let sent = 0;
     let failed = 0;
+    let currentNonce = nonce;
 
     for (let i = 0; i < plan.length; i++) {
         const tx = plan[i];
-        const txNonce = nonce + i;
 
         try {
-            const result = await broadcastTx(privateKey, tx, txNonce);
+            const result = await broadcastTx(privateKey, tx, currentNonce);
             if (result.success) {
                 sent++;
-                console.log(`  [${i + 1}/${plan.length}] OK  ${tx.label}  fee=${tx.fee}  txid=${result.txid.slice(0, 12)}...`);
+                currentNonce++; // only increment nonce on successful broadcast
+                console.log(`  [${i + 1}/${plan.length}] OK  ${tx.label}  fee=${tx.fee}  nonce=${currentNonce - 1}  txid=${result.txid.slice(0, 12)}...`);
             } else {
                 failed++;
                 console.log(`  [${i + 1}/${plan.length}] ERR ${tx.label}  error=${result.error}  reason=${result.reason}`);
+                // On FeeTooLow or BadNonce the nonce was NOT consumed — do not increment.
+                // On TooMuchChaining, stop this wallet entirely.
+                if (result.reason === 'TooMuchChaining') {
+                    console.log('  Stopping wallet: mempool full (TooMuchChaining).');
+                    failed += (plan.length - i - 1);
+                    break;
+                }
             }
         } catch (err) {
             failed++;
