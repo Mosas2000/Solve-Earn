@@ -17,9 +17,9 @@
 // Fee: 250-300 uSTX per transaction (set by BASE_FEE / MAX_FEE).
 //
 // Important: create-bounty transfers STX from the caller into the
-// contract (the bounty pool). Each wallet needs enough STX to cover
-// both the pool amounts and the transaction fees. The bounty pool
-// values are intentionally small (0.2-0.5 STX each).
+// contract (the bounty pool). Pool amounts are kept intentionally
+// tiny (500-2000 uSTX each = 0.0005-0.002 STX) so that wallets
+// with ~0.5 STX can send all 30 transactions without running dry.
 //
 // The script manages nonces manually to avoid conflicts when sending
 // multiple transactions from the same wallet.
@@ -80,15 +80,18 @@ const DISPUTE_REASONS = [
 ];
 
 // Bounty configuration templates
+// Pool amounts are intentionally tiny (500-2000 uSTX = 0.0005-0.002 STX)
+// so that wallets with ~0.5 STX can create many bounties without running
+// out of funds. Total cost for 8 bounties ≈ 8000 uSTX + ~2400 fees ≈ 0.01 STX.
 const BOUNTY_TEMPLATES = [
-    { title: 'DeFi Protocol Audit', desc: 'Security review of lending pool', pool: 500000, crit: 200000, high: 150000, med: 100000, low: 50000 },
-    { title: 'NFT Marketplace Review', desc: 'Vulnerability scan of marketplace', pool: 300000, crit: 120000, high: 90000, med: 60000, low: 30000 },
-    { title: 'Bridge Contract Check', desc: 'Cross-chain bridge security audit', pool: 400000, crit: 160000, high: 120000, med: 80000, low: 40000 },
-    { title: 'Token Swap Audit', desc: 'AMM contract vulnerability search', pool: 250000, crit: 100000, high: 75000, med: 50000, low: 25000 },
-    { title: 'Governance Module Test', desc: 'DAO governance security review', pool: 350000, crit: 140000, high: 105000, med: 70000, low: 35000 },
-    { title: 'Staking Pool Review', desc: 'Staking mechanism audit', pool: 200000, crit: 80000, high: 60000, med: 40000, low: 20000 },
-    { title: 'Oracle Integration Test', desc: 'Price feed security validation', pool: 450000, crit: 180000, high: 135000, med: 90000, low: 45000 },
-    { title: 'Wallet Contract Audit', desc: 'Multi-sig wallet security check', pool: 280000, crit: 112000, high: 84000, med: 56000, low: 28000 },
+    { title: 'DeFi Protocol Audit', desc: 'Security review of lending pool', pool: 2000, crit: 800, high: 600, med: 400, low: 200 },
+    { title: 'NFT Marketplace Review', desc: 'Vulnerability scan of marketplace', pool: 1500, crit: 600, high: 450, med: 300, low: 150 },
+    { title: 'Bridge Contract Check', desc: 'Cross-chain bridge security audit', pool: 1800, crit: 720, high: 540, med: 360, low: 180 },
+    { title: 'Token Swap Audit', desc: 'AMM contract vulnerability search', pool: 1000, crit: 400, high: 300, med: 200, low: 100 },
+    { title: 'Governance Module Test', desc: 'DAO governance security review', pool: 1600, crit: 640, high: 480, med: 320, low: 160 },
+    { title: 'Staking Pool Review', desc: 'Staking mechanism audit', pool: 800, crit: 320, high: 240, med: 160, low: 80 },
+    { title: 'Oracle Integration Test', desc: 'Price feed security validation', pool: 1200, crit: 480, high: 360, med: 240, low: 120 },
+    { title: 'Wallet Contract Audit', desc: 'Multi-sig wallet security check', pool: 500, crit: 200, high: 150, med: 100, low: 50 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -389,98 +392,161 @@ async function queryBountyOwner(bountyId) {
 // Transaction plan generator
 //
 // For each wallet, we build a plan of 30 transactions that avoids known
-// error conditions. The plan uses tracked state counters to ensure calls
-// reference valid IDs and respect per-wallet constraints.
+// error conditions. The plan uses a phased approach:
+//
+//   Phase 1: register-researcher (if needed)
+//   Phase 2: create a few bounties (so later txs can reference them)
+//   Phase 3: interleave all function types with proper state tracking
+//
+// State counters are tracked both from on-chain data AND from earlier
+// wallets so that submit-vulnerability / create-dispute have valid IDs.
 // ---------------------------------------------------------------------------
+
+// Shared mutable state across wallets — bounties created by each wallet
+// keyed by wallet address, and global counters updated as plans are built.
+const globalState = {
+    knownBounties: 0,
+    knownSubmissions: 0,
+    knownDisputes: 0,
+    bountyOwners: {},   // bountyId -> walletAddress
+    initialized: false,
+};
 
 async function buildPlan(walletIndex, address, isDeployer) {
     const plan = [];
 
+    // Initialize global state from on-chain data once
+    if (!globalState.initialized) {
+        globalState.knownBounties = await queryTotalBounties();
+        globalState.knownSubmissions = await queryTotalSubmissions();
+        globalState.knownDisputes = await queryTotalDisputes();
+        globalState.initialized = true;
+    }
+
     // Check if already registered
     const alreadyRegistered = await queryResearcherProfile(address);
 
-    // Fetch current on-chain state
-    let knownBounties = await queryTotalBounties();
-    let knownSubmissions = await queryTotalSubmissions();
-    let knownDisputes = await queryTotalDisputes();
-
     // Track bounties created by THIS wallet (to avoid self-submission)
-    const myBountyIds = [];
-    // Track hashes submitted to each bounty (to avoid duplicates)
-    const submittedHashes = new Set();
+    const myBountyIds = new Set();
 
-    // --- Step 1: register researcher if not yet registered ---
+    // --- Phase 1: register researcher if not yet registered ---
     if (!alreadyRegistered) {
         plan.push(buildRegisterResearcher());
     }
 
-    // --- Step 2: fill the remaining slots with a random mix ---
+    // --- Phase 2: seed bounties first (ensures every wallet creates some) ---
+    // Create 3-5 bounties upfront so later slots have IDs to reference
+    const seedBountyCount = randomInt(3, 5);
+    for (let b = 0; b < seedBountyCount && plan.length < TX_PER_WALLET; b++) {
+        plan.push(buildCreateBounty());
+        globalState.knownBounties++;
+        const newId = globalState.knownBounties;
+        myBountyIds.add(newId);
+        globalState.bountyOwners[newId] = address;
+    }
+
+    // --- Phase 3: fill remaining slots with a diverse random mix ---
     //
-    // Available write operations:
-    //   - create-bounty          (costs STX from pool transfer, max fee 300)
-    //   - submit-vulnerability   (needs bounty not owned by self)
-    //   - create-dispute         (needs a submission ID)
-    //   - set-approval-delay     (deployer-only governance)
-    //   - set-high-value-threshold (deployer-only governance)
-    //
-    // We weight the distribution to get variety while avoiding errors.
+    // Target distribution (approximate):
+    //   create-bounty:          ~20%   (6-7 of 30)
+    //   submit-vulnerability:   ~30%   (9 of 30)
+    //   create-dispute:         ~20%   (6 of 30)
+    //   set-approval-delay:     ~15%   (deployer) or more bounties (non-deployer)
+    //   set-high-value-threshold: ~15% (deployer) or more submits (non-deployer)
 
     while (plan.length < TX_PER_WALLET) {
-        const remaining = TX_PER_WALLET - plan.length;
         const roll = Math.random();
 
-        if (roll < 0.25) {
-            // Create a bounty
-            const bx = buildCreateBounty();
-            plan.push(bx);
-            knownBounties++;
-            myBountyIds.push(knownBounties);
-        } else if (roll < 0.55 && knownBounties > 0) {
-            // Submit a vulnerability to an existing bounty
-            // Pick a bounty that this wallet did NOT create
+        if (roll < 0.15) {
+            // Create another bounty
+            plan.push(buildCreateBounty());
+            globalState.knownBounties++;
+            const newId = globalState.knownBounties;
+            myBountyIds.add(newId);
+            globalState.bountyOwners[newId] = address;
+
+        } else if (roll < 0.50) {
+            // Submit a vulnerability to someone else's bounty
             const candidates = [];
-            for (let i = 1; i <= knownBounties; i++) {
-                if (!myBountyIds.includes(i)) {
+            for (let i = 1; i <= globalState.knownBounties; i++) {
+                if (!myBountyIds.has(i)) {
                     candidates.push(i);
                 }
             }
             if (candidates.length > 0) {
                 const bountyId = randomElement(candidates);
                 plan.push(buildSubmitVulnerability(bountyId));
-                knownSubmissions++;
+                globalState.knownSubmissions++;
             } else {
-                // All known bounties belong to this wallet — create dispute instead
-                if (knownSubmissions > 0) {
-                    const sid = randomInt(1, knownSubmissions);
+                // No external bounties available — fallback to create-dispute or bounty
+                if (globalState.knownSubmissions > 0) {
+                    const sid = randomInt(1, globalState.knownSubmissions);
                     plan.push(buildCreateDispute(sid));
-                    knownDisputes++;
+                    globalState.knownDisputes++;
                 } else {
                     plan.push(buildCreateBounty());
-                    knownBounties++;
-                    myBountyIds.push(knownBounties);
+                    globalState.knownBounties++;
+                    myBountyIds.add(globalState.knownBounties);
+                    globalState.bountyOwners[globalState.knownBounties] = address;
                 }
             }
-        } else if (roll < 0.80 && knownSubmissions > 0) {
+
+        } else if (roll < 0.75) {
             // Create a dispute on a known submission
-            const sid = randomInt(1, knownSubmissions);
-            plan.push(buildCreateDispute(sid));
-            knownDisputes++;
-        } else if (isDeployer && roll < 0.90) {
-            // Governance: set-approval-delay (deployer only)
-            plan.push(buildSetApprovalDelay());
-        } else if (isDeployer && roll < 1.0) {
-            // Governance: set-high-value-threshold (deployer only)
-            plan.push(buildSetHighValueThreshold());
-        } else {
-            // Fallback: create a bounty or dispute
-            if (knownSubmissions > 0 && Math.random() > 0.5) {
-                const sid = randomInt(1, knownSubmissions);
+            if (globalState.knownSubmissions > 0) {
+                const sid = randomInt(1, globalState.knownSubmissions);
                 plan.push(buildCreateDispute(sid));
-                knownDisputes++;
+                globalState.knownDisputes++;
+            } else if (globalState.knownBounties > 0) {
+                // No submissions yet — try submit-vulnerability instead
+                const candidates = [];
+                for (let i = 1; i <= globalState.knownBounties; i++) {
+                    if (!myBountyIds.has(i)) candidates.push(i);
+                }
+                if (candidates.length > 0) {
+                    const bountyId = randomElement(candidates);
+                    plan.push(buildSubmitVulnerability(bountyId));
+                    globalState.knownSubmissions++;
+                } else {
+                    plan.push(buildCreateBounty());
+                    globalState.knownBounties++;
+                    myBountyIds.add(globalState.knownBounties);
+                    globalState.bountyOwners[globalState.knownBounties] = address;
+                }
             } else {
                 plan.push(buildCreateBounty());
-                knownBounties++;
-                myBountyIds.push(knownBounties);
+                globalState.knownBounties++;
+                myBountyIds.add(globalState.knownBounties);
+                globalState.bountyOwners[globalState.knownBounties] = address;
+            }
+
+        } else if (roll < 0.875 && isDeployer) {
+            // Governance: set-approval-delay (deployer only)
+            plan.push(buildSetApprovalDelay());
+
+        } else if (isDeployer) {
+            // Governance: set-high-value-threshold (deployer only)
+            plan.push(buildSetHighValueThreshold());
+
+        } else {
+            // Non-deployer fallback: submit-vulnerability or create-dispute
+            const candidates = [];
+            for (let i = 1; i <= globalState.knownBounties; i++) {
+                if (!myBountyIds.has(i)) candidates.push(i);
+            }
+            if (candidates.length > 0 && Math.random() < 0.6) {
+                const bountyId = randomElement(candidates);
+                plan.push(buildSubmitVulnerability(bountyId));
+                globalState.knownSubmissions++;
+            } else if (globalState.knownSubmissions > 0) {
+                const sid = randomInt(1, globalState.knownSubmissions);
+                plan.push(buildCreateDispute(sid));
+                globalState.knownDisputes++;
+            } else {
+                plan.push(buildCreateBounty());
+                globalState.knownBounties++;
+                myBountyIds.add(globalState.knownBounties);
+                globalState.bountyOwners[globalState.knownBounties] = address;
             }
         }
     }
@@ -628,12 +694,13 @@ async function main() {
     const deployerWallet = wallets.find(w => w.label === 'deployer');
     const deployerAddress = deployerWallet ? getAddressFromKey(deployerWallet.key) : null;
 
-    // Query initial on-chain state
+    // Query initial on-chain state (also seeds globalState for plan builder)
     console.log('\nQuerying on-chain state...');
-    const totalBounties = await queryTotalBounties();
-    const totalSubmissions = await queryTotalSubmissions();
-    const totalDisputes = await queryTotalDisputes();
-    console.log(`  Bounties: ${totalBounties}  Submissions: ${totalSubmissions}  Disputes: ${totalDisputes}`);
+    globalState.knownBounties = await queryTotalBounties();
+    globalState.knownSubmissions = await queryTotalSubmissions();
+    globalState.knownDisputes = await queryTotalDisputes();
+    globalState.initialized = true;
+    console.log(`  Bounties: ${globalState.knownBounties}  Submissions: ${globalState.knownSubmissions}  Disputes: ${globalState.knownDisputes}`);
 
     // Run wallets sequentially to avoid nonce collisions across shared state
     // (each wallet runs its own batch independently)
