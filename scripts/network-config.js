@@ -8,7 +8,7 @@
 // Default: mainnet  (scripts historically targeted mainnet)
 // ---------------------------------------------------------------------------
 
-const { StacksMainnet, StacksTestnet, StacksDevnet } = require('@stacks/network');
+const { STACKS_MAINNET, STACKS_TESTNET, STACKS_DEVNET } = require('@stacks/network');
 
 const NETWORK_DEFAULTS = {
     mainnet: {
@@ -35,12 +35,12 @@ function resolveNetworkMode() {
 function createNetwork(mode) {
     switch (mode) {
         case 'testnet':
-            return new StacksTestnet();
+            return STACKS_TESTNET;
         case 'devnet':
-            return new StacksDevnet();
+            return STACKS_DEVNET;
         case 'mainnet':
         default:
-            return new StacksMainnet();
+            return STACKS_MAINNET;
     }
 }
 
