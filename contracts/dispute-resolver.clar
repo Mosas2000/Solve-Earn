@@ -19,6 +19,7 @@
 (define-data-var dispute-nonce uint u0)
 (define-data-var arbiter-count uint u0)
 
+;; Maps for disputes, arbiters, and votes
 (define-map disputes
     { dispute-id: uint }
     {
@@ -47,50 +48,36 @@
     { vote: bool, voted-at: uint }
 )
 
+;; ===============================
+;; Enhancement: Track disputes per submission
+;; ===============================
+(define-map submission-disputes
+    { submission-id: uint }
+    { disputes: (list 50 uint) }
+)
+
+;; ===============================
+;; Register Arbiter
+;; ===============================
 (define-public (register-arbiter (new-arbiter principal))
     (begin
         ;; Only the contract owner may register arbiters
         (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
-        ;; Prevent re-registration from inflating the count
+        ;; Prevent re-registration
         (asserts! (is-none (map-get? arbiters { arbiter: new-arbiter })) err-already-registered)
         (map-set arbiters
             { arbiter: new-arbiter }
-            {
-                is-active: true,
-                total-votes: u0,
-                correct-votes: u0
-            }
+            { is-active: true, total-votes: u0, correct-votes: u0 }
         )
         (var-set arbiter-count (+ (var-get arbiter-count) u1))
-        (print {
-            event: "arbiter-registered",
-            arbiter: new-arbiter,
-            block-height: block-height
-        })
+        (print { event: "arbiter-registered", arbiter: new-arbiter, block-height: block-height })
         (ok true)
     )
 )
 
-;; Deactivate an arbiter. Only callable by the contract owner.
-(define-public (deactivate-arbiter (arbiter-address principal))
-    (let
-        (
-            (arbiter-data (unwrap! (map-get? arbiters { arbiter: arbiter-address }) err-not-arbiter))
-        )
-        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
-        (map-set arbiters
-            { arbiter: arbiter-address }
-            (merge arbiter-data { is-active: false })
-        )
-        (print {
-            event: "arbiter-deactivated",
-            arbiter: arbiter-address,
-            block-height: block-height
-        })
-        (ok true)
-    )
-)
-
+;; ===============================
+;; Create Dispute (enhanced)
+;; ===============================
 (define-public (create-dispute 
     (submission-id uint)
     (reason (string-utf8 100))
@@ -99,6 +86,7 @@
         (
             (dispute-id (+ (var-get dispute-nonce) u1))
         )
+        ;; Store dispute
         (map-set disputes
             { dispute-id: dispute-id }
             {
@@ -112,18 +100,24 @@
                 resolved-at: none
             }
         )
+
+        ;; Update submission history
+        (let ((current (default-to {disputes: (list)} (map-get? submission-disputes { submission-id: submission-id }))))
+          (match (as-max-len? (append (get disputes current) dispute-id) u50)
+            new-list (map-set submission-disputes { submission-id: submission-id } { disputes: new-list })
+            false
+          )
+        )
+
         (var-set dispute-nonce dispute-id)
-        (print {
-            event: "dispute-created",
-            dispute-id: dispute-id,
-            submission-id: submission-id,
-            initiator: tx-sender,
-            block-height: block-height
-        })
+        (print { event: "dispute-created", dispute-id: dispute-id, submission-id: submission-id, initiator: tx-sender, block-height: block-height })
         (ok dispute-id)
     )
 )
 
+;; ===============================
+;; Vote on Dispute
+;; ===============================
 (define-public (vote-on-dispute (dispute-id uint) (vote-for bool))
     (let
         (
@@ -133,43 +127,31 @@
         )
         ;; Only active arbiters may vote
         (asserts! (get is-active arbiter) err-arbiter-inactive)
-        ;; Cannot vote on a resolved or rejected dispute
+        ;; Cannot vote on resolved dispute
         (asserts! (is-eq (get status dispute) "open") err-dispute-closed)
-        ;; Cannot vote after the voting period expires
+        ;; Voting period check
         (asserts! (< block-height (+ (get created-at dispute) VOTING-PERIOD)) err-dispute-closed)
         ;; Prevent duplicate votes
         (asserts! (is-none existing-vote) err-already-voted)
-        (map-set arbiter-votes
-            { dispute-id: dispute-id, arbiter: tx-sender }
-            { vote: vote-for, voted-at: block-height }
-        )
-        (map-set disputes
-            { dispute-id: dispute-id }
+        ;; Store vote
+        (map-set arbiter-votes { dispute-id: dispute-id, arbiter: tx-sender } { vote: vote-for, voted-at: block-height })
+        ;; Update dispute counts
+        (map-set disputes { dispute-id: dispute-id } 
             (merge dispute {
                 votes-for: (if vote-for (+ (get votes-for dispute) u1) (get votes-for dispute)),
                 votes-against: (if vote-for (get votes-against dispute) (+ (get votes-against dispute) u1))
             })
         )
-        ;; Increment the arbiter's total-votes counter
-        (map-set arbiters
-            { arbiter: tx-sender }
-            (merge arbiter { total-votes: (+ (get total-votes arbiter) u1) })
-        )
-        (print {
-            event: "dispute-vote",
-            dispute-id: dispute-id,
-            arbiter: tx-sender,
-            vote-for: vote-for,
-            block-height: block-height
-        })
+        ;; Increment arbiter stats
+        (map-set arbiters { arbiter: tx-sender } (merge arbiter { total-votes: (+ (get total-votes arbiter) u1) }))
+        (print { event: "dispute-vote", dispute-id: dispute-id, arbiter: tx-sender, vote-for: vote-for, block-height: block-height })
         (ok true)
     )
 )
 
-;; Resolve a dispute once the voting period has ended and quorum is met.
-;; The outcome is determined by majority vote: if votes-for > votes-against
-;; the dispute is resolved in favour of the initiator, otherwise it is
-;; rejected. Only callable after the voting period has elapsed.
+;; ===============================
+;; Resolve Dispute
+;; ===============================
 (define-public (resolve-dispute (dispute-id uint))
     (let
         (
@@ -177,77 +159,53 @@
             (total-votes (+ (get votes-for dispute) (get votes-against dispute)))
             (voting-deadline (+ (get created-at dispute) VOTING-PERIOD))
         )
-        ;; Dispute must still be open
+        ;; Validate
         (asserts! (is-eq (get status dispute) "open") err-already-resolved)
-        ;; Voting period must have ended
         (asserts! (>= block-height voting-deadline) err-voting-active)
-        ;; Quorum must be reached
         (asserts! (>= total-votes QUORUM) err-quorum-not-reached)
-        ;; Determine outcome by majority
-        (let
-            (
-                (outcome (if (> (get votes-for dispute) (get votes-against dispute))
-                    "resolved"
-                    "rejected"
-                ))
-            )
-            (map-set disputes
-                { dispute-id: dispute-id }
-                (merge dispute {
-                    status: outcome,
-                    resolved-at: (some block-height)
-                })
-            )
-            (print {
-                event: "dispute-resolved",
-                dispute-id: dispute-id,
-                outcome: outcome,
-                votes-for: (get votes-for dispute),
-                votes-against: (get votes-against dispute),
-                block-height: block-height
-            })
+        ;; Determine outcome
+        (let ((outcome (if (> (get votes-for dispute) (get votes-against dispute)) "resolved" "rejected")))
+            (map-set disputes { dispute-id: dispute-id } (merge dispute { status: outcome, resolved-at: (some block-height) }))
+            (print { event: "dispute-resolved", dispute-id: dispute-id, outcome: outcome, votes-for: (get votes-for dispute), votes-against: (get votes-against dispute), block-height: block-height })
             (ok outcome)
         )
     )
 )
 
+;; ===============================
+;; Deactivate Arbiter
+;; ===============================
+(define-public (deactivate-arbiter (who principal))
+    (let ((arbiter (unwrap! (map-get? arbiters { arbiter: who }) err-not-arbiter)))
+        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
+        (asserts! (get is-active arbiter) err-arbiter-inactive)
+        (map-set arbiters { arbiter: who } (merge arbiter { is-active: false }))
+        (var-set arbiter-count (- (var-get arbiter-count) u1))
+        (print { event: "arbiter-deactivated", arbiter: who, block-height: block-height })
+        (ok true)
+    )
+)
+
+;; ===============================
+;; Read-only helpers
+;; ===============================
 (define-read-only (get-dispute (dispute-id uint))
     (map-get? disputes { dispute-id: dispute-id })
 )
 
-;; Returns whether the given principal is a registered and active arbiter.
-;; Used by bounty-vault to validate arbiter co-signing on high-value approvals.
+(define-read-only (get-disputes-by-submission (submission-id uint))
+    (match (map-get? submission-disputes { submission-id: submission-id })
+        entry (ok (get disputes entry))
+        (ok (list))
+    )
+)
+
 (define-read-only (is-registered-arbiter (who principal))
     (match (map-get? arbiters { arbiter: who })
         arbiter-data (get is-active arbiter-data)
         false
     )
 )
-
-;; Deactivate an arbiter. Only the contract owner may call this.
-;; Deactivated arbiters can no longer vote on disputes.
-(define-public (deactivate-arbiter (who principal))
-    (let
-        (
-            (arbiter (unwrap! (map-get? arbiters { arbiter: who }) err-not-arbiter))
-        )
-        (asserts! (is-eq tx-sender contract-owner) err-unauthorized)
-        (asserts! (get is-active arbiter) err-arbiter-inactive)
-        (map-set arbiters
-            { arbiter: who }
-            (merge arbiter { is-active: false })
-        )
-        (var-set arbiter-count (- (var-get arbiter-count) u1))
-        (print {
-            event: "arbiter-deactivated",
-            arbiter: who,
-            block-height: block-height
-        })
-        (ok true)
-    )
-)
-
-;; Read-only helpers for querying dispute and arbiter state
 
 (define-read-only (get-total-disputes)
     (ok (var-get dispute-nonce))
